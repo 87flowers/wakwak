@@ -65,7 +65,7 @@ impl Params {
 
     #[inline]
     pub fn quiet_malus(depth: i32) -> i32 {
-        (Self::quiet_malus_base() + Self::quiet_malus_scale() * depth).min(Self::quiet_malus_max())
+        -(Self::quiet_malus_base() + Self::quiet_malus_scale() * depth).min(Self::quiet_malus_max())
     }
 
     #[inline]
