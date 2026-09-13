@@ -1,7 +1,7 @@
 use crate::board::TerminalState;
 use crate::common::Move;
 use crate::engine::EngineOptions;
-use crate::eval::evaluator;
+use crate::eval::eval;
 use crate::position::Position;
 use crate::score::Score;
 use crate::search::{MovePicker, Params, PrincipalVariation, SearchInfo, SharedData, ThreadData};
@@ -191,7 +191,7 @@ fn search<Node: NodeType>(
         return Score::draw();
     }
 
-    let static_eval = evaluator::evaluate(pos.board());
+    let static_eval = eval(pos.board());
 
     if depth <= 0 {
         return static_eval;

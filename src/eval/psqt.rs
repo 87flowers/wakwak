@@ -1,5 +1,7 @@
+use crate::common::{Piece, Square};
+
 #[rustfmt::skip]
-const MG_PAWN: [i32; 64] = [
+const MG_PAWN: [i32; Square::COUNT] = [
        0,    0,    0,    0,    0,    0,    0,    0,
      -35,   -1,  -20,  -23,  -15,   24,   38,  -22,
      -26,   -4,   -4,  -10,    3,    3,   33,  -12,
@@ -11,7 +13,7 @@ const MG_PAWN: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const MG_KNIGHT: [i32; 64] = [
+const MG_KNIGHT: [i32; Square::COUNT] = [
     -105,  -21,  -58,  -33,  -17,  -28,  -19,  -23,
      -29,  -53,  -12,   -3,   -1,   18,  -14,  -19,
      -23,   -9,   12,   10,   19,   17,   25,  -16,
@@ -23,7 +25,7 @@ const MG_KNIGHT: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const MG_BISHOP: [i32; 64] = [
+const MG_BISHOP: [i32; Square::COUNT] = [
      -33,   -3,  -14,  -21,  -13,  -12,  -39,  -21,
        4,   15,   16,    0,    7,   21,   33,    1,
        0,   15,   15,   15,   14,   27,   18,   10,
@@ -35,7 +37,7 @@ const MG_BISHOP: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const MG_ROOK: [i32; 64] = [
+const MG_ROOK: [i32; Square::COUNT] = [
      -19,  -13,    1,   17,   16,    7,  -37,  -26,
      -44,  -16,  -20,   -9,   -1,   11,   -6,  -71,
      -45,  -25,  -16,  -17,    3,    0,   -5,  -33,
@@ -47,7 +49,7 @@ const MG_ROOK: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const MG_QUEEN: [i32; 64] = [
+const MG_QUEEN: [i32; Square::COUNT] = [
       -1,  -18,   -9,   10,  -15,  -25,  -31,  -50,
      -35,   -8,   11,    2,    8,   15,   -3,    1,
      -14,    2,  -11,   -2,   -5,    2,   14,    5,
@@ -59,7 +61,7 @@ const MG_QUEEN: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const MG_KING: [i32; 64] = [
+const MG_KING: [i32; Square::COUNT] = [
      -15,   36,   12,  -54,    8,  -28,   24,   14,
        1,    7,   -8,  -64,  -43,  -16,    9,    8,
      -14,  -14,  -22,  -46,  -44,  -30,  -15,  -27,
@@ -70,11 +72,11 @@ const MG_KING: [i32; 64] = [
      -65,   23,   16,  -15,  -56,  -34,    2,   13,
 ];
 
-pub(super) const MG_PIECE_SQUARE_TABLES: [[i32; 64]; 6] =
+pub(super) const MG_PSQT: [[i32; Square::COUNT]; Piece::COUNT] =
     [MG_PAWN, MG_KNIGHT, MG_BISHOP, MG_ROOK, MG_QUEEN, MG_KING];
 
 #[rustfmt::skip]
-const EG_PAWN: [i32; 64] = [
+const EG_PAWN: [i32; Square::COUNT] = [
        0,    0,    0,    0,    0,    0,    0,    0,
       13,    8,    8,   10,   13,    0,    2,   -7,
        4,    7,   -6,    1,    0,   -5,   -1,   -8,
@@ -86,7 +88,7 @@ const EG_PAWN: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const EG_KNIGHT: [i32; 64] = [
+const EG_KNIGHT: [i32; Square::COUNT] = [
      -29,  -51,  -23,  -15,  -22,  -18,  -50,  -64,
      -42,  -20,  -10,   -5,   -2,  -20,  -23,  -44,
      -23,   -3,   -1,   15,   10,   -3,  -20,  -22,
@@ -98,7 +100,7 @@ const EG_KNIGHT: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const EG_BISHOP: [i32; 64] = [
+const EG_BISHOP: [i32; Square::COUNT] = [
      -23,   -9,  -23,   -5,   -9,  -16,   -5,  -17,
      -14,  -18,   -7,   -1,    4,   -9,  -15,  -27,
      -12,   -3,    8,   10,   13,    3,   -7,  -15,
@@ -110,7 +112,7 @@ const EG_BISHOP: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const EG_ROOK: [i32; 64] = [
+const EG_ROOK: [i32; Square::COUNT] = [
       -9,    2,    3,   -1,   -5,  -13,    4,  -20,
       -6,   -6,    0,    2,   -9,   -9,  -11,   -3,
       -4,    0,   -5,   -1,   -7,  -12,   -8,  -16,
@@ -122,7 +124,7 @@ const EG_ROOK: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const EG_QUEEN: [i32; 64] = [
+const EG_QUEEN: [i32; Square::COUNT] = [
      -33,  -28,  -22,  -43,   -5,  -32,  -20,  -41,
      -22,  -23,  -30,  -16,  -16,  -23,  -36,  -32,
      -16,  -27,   15,    6,    9,   17,   10,    5,
@@ -134,7 +136,7 @@ const EG_QUEEN: [i32; 64] = [
 ];
 
 #[rustfmt::skip]
-const EG_KING: [i32; 64] = [
+const EG_KING: [i32; Square::COUNT] = [
      -53,  -34,  -21,  -11,  -28,  -14,  -24,  -43,
      -27,  -11,    4,   13,   14,    4,   -5,  -17,
      -19,   -3,   11,   21,   23,   16,    7,   -9,
@@ -145,5 +147,5 @@ const EG_KING: [i32; 64] = [
      -74,  -35,  -18,  -18,  -11,   15,    4,  -17,
 ];
 
-pub(super) const EG_PIECE_SQUARE_TABLES: [[i32; 64]; 6] =
+pub(super) const EG_PSQT: [[i32; Square::COUNT]; Piece::COUNT] =
     [EG_PAWN, EG_KNIGHT, EG_BISHOP, EG_ROOK, EG_QUEEN, EG_KING];
