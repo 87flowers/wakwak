@@ -109,16 +109,17 @@ impl MovePicker {
                 let mv = moves[j].0;
                 if moves[j].0.flag().is_noisy() {
                     // Score noisies here (moves[j].1 = pluh)
-                    let attacker = mv.flag().promotion().or(board.piece_on(mv.src())).unwrap();
-                    let attacker_value = Params::piece_value(attacker);
-                    let victim_value = if mv.flag() == MoveFlag::EnPassant {
+                    let attacker = Params::piece_value(board.piece_on(mv.src()).unwrap());
+                    let victim = if mv.flag() == MoveFlag::EnPassant {
                         Params::piece_value(Piece::Pawn)
                     } else if mv.flag().is_capture() {
                         Params::piece_value(board.piece_on(mv.dest()).unwrap())
                     } else {
                         0
                     };
-                    moves[j].1 = victim_value - attacker_value;
+                    let promotion = mv.flag().promotion().map_or(0, Params::piece_value);
+
+                    moves[j].1 = 100 * victim + promotion - attacker;
                     moves.swap(i, j);
                     i += 1;
                 } else {
