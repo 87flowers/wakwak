@@ -191,8 +191,14 @@ fn search<Node: NodeType>(
         return Score::draw();
     }
 
+    let static_eval = evaluator::evaluate(pos.board());
+
     if depth <= 0 {
-        return evaluator::evaluate(pos.board());
+        return static_eval;
+    }
+
+    if !Node::ROOT && depth <= 8 && static_eval - 50 * depth >= beta {
+        return static_eval;
     }
 
     // FIXME: Remove leading _ when this is used
