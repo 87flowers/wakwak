@@ -1,3 +1,5 @@
+#[cfg(feature = "tune")]
+use crate::uci::UciParseError;
 use std::cell::UnsafeCell;
 
 // `std::cell::SyncUnsafeCell` is nightly only
@@ -10,8 +12,9 @@ macro_rules! params {
         pub struct Params;
 
         $(
+            #[allow(non_upper_case_globals)]
             #[cfg(feature = "tune")]
-            pub static $name: SyncUnsafeCell<$ty> = SyncUnsafeCell::new($default);
+            pub static $name: SyncUnsafeCell<$ty> = SyncUnsafeCell(UnsafeCell::new($default));
         )*
 
         impl Params {
@@ -39,6 +42,15 @@ macro_rules! params {
                             unsafe { *$name.0.get() = value };
                         },
                     )*
+                    _ => eprintln!("info string Unknown Option: `{name}`"),
+                }
+            }
+
+            #[cfg(feature = "tune")]
+            pub fn is_weight(name: &str) -> bool {
+                match name {
+                    $(stringify!($name) => true,)*
+                    _ => false,
                 }
             }
         }

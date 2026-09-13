@@ -1,6 +1,8 @@
 use crate::board::Board;
 use crate::common::Move;
 use crate::position::Position;
+#[cfg(feature = "tune")]
+use crate::search::Params;
 use crate::search::{DEFAULT_OVERHEAD, SearchInfo, Searcher};
 use crate::uci::{SearchLimit, UciCommand, UciParseError};
 use crate::util::{Abort, EPOCH};
@@ -292,6 +294,8 @@ impl Engine {
                 self.options.variant = variant;
                 println!("info string Set UCI_Variant to {value}");
             }
+            #[cfg(feature = "tune")]
+            name if Params::is_weight(name) => Params::set_param(name, value),
             _ => eprintln!("info string Unknown Option: `{name}`"),
         }
     }
