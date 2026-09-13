@@ -4,7 +4,7 @@ use crate::engine::EngineOptions;
 use crate::eval::evaluator;
 use crate::position::Position;
 use crate::score::Score;
-use crate::search::{MovePicker, PrincipalVariation, SearchInfo, SharedData, ThreadData};
+use crate::search::{MovePicker, Params, PrincipalVariation, SearchInfo, SharedData, ThreadData};
 use std::sync::atomic::Ordering;
 
 #[derive(Debug, Clone, Default)]
@@ -197,19 +197,20 @@ fn search<Node: NodeType>(
         return static_eval;
     }
 
-    if !Node::ROOT && depth <= 8 && static_eval - 50 * depth >= beta {
+    if !Node::ROOT && depth <= 8 && static_eval - Params::rfp_margin(depth) >= beta {
         return static_eval;
     }
 
     // FIXME: Remove leading _ when this is used
-    let mut _best_move = None;
+    let mut best_move = None;
     let mut best_score = None;
 
     thread.move_stack.push(pos.board());
+    let mut failed_quiets = Vec::new();
     let mut move_picker = MovePicker::default();
     let mut move_count = 0;
 
-    while let Some(mv) = move_picker.next(thread.move_stack.get_mut()) {
+    while let Some(mv) = move_picker.next(pos, thread) {
         pos.make_move(mv);
         let score = -search::<PV>(pos, thread, shared, -beta, -alpha, depth - 1, ply + 1);
         pos.unmake_move();
@@ -231,14 +232,21 @@ fn search<Node: NodeType>(
 
         if score > alpha {
             alpha = score;
-            _best_move = Some(mv);
+            best_move = Some(mv);
             if Node::PV {
                 update_pv(thread, mv, ply);
             }
 
             if score >= beta {
+                thread
+                    .history
+                    .update(pos.board(), depth, best_move.unwrap(), &failed_quiets);
                 break;
             }
+        }
+
+        if best_move != Some(mv) && mv.flag().is_quiet() {
+            failed_quiets.push(mv);
         }
     }
 

@@ -1,9 +1,9 @@
 use crate::board::Board;
 use crate::common::Move;
-use crate::search::MAX_PLY;
+use crate::position::Position;
+use crate::search::{MAX_PLY, ThreadData};
 use crate::util::Abort;
 
-#[expect(dead_code)]
 pub struct ScoredMove(Move, i32);
 
 pub struct MoveStack {
@@ -98,7 +98,9 @@ impl MovePicker {
         }
     }
 
-    pub fn next(&mut self, moves: &mut [ScoredMove]) -> Option<Move> {
+    pub fn next(&mut self, pos: &Position, thread: &mut ThreadData) -> Option<Move> {
+        let moves = thread.move_stack.get_mut();
+
         if self.stage == Stage::SplitNoisy {
             // Move all noisies to the front of the list
             let mut i = 0;
@@ -110,6 +112,7 @@ impl MovePicker {
                     i += 1;
                 } else {
                     // Score quiets here (moves[j].1 = pluh)
+                    moves[j].1 = thread.history.quiet(pos.board(), moves[j].0);
                 }
             }
 
@@ -118,22 +121,18 @@ impl MovePicker {
         }
 
         if self.stage == Stage::YieldNoisy {
-            if self.skip_quiets {
-                self.stage = Stage::Finished;
-            } else if self.cursor >= self.noisy_count {
+            if self.cursor >= self.noisy_count {
                 self.stage = Stage::YieldQuiet;
             } else {
-                let (i, mv) = self.select_next(&moves[..self.noisy_count]);
-                moves.swap(self.cursor, i);
-                self.cursor += 1;
+                // TODO: change this to use `select_next` when implementing noisy move ordering
 
-                return Some(mv);
+                self.cursor += 1;
+                return Some(moves[self.cursor - 1].0);
             }
         }
 
         if self.stage == Stage::YieldQuiet {
             if self.skip_quiets {
-                // Not sure if it's possible to hit this branch but just to be sure
                 self.stage = Stage::Finished;
             } else {
                 if self.cursor < self.noisy_count {
@@ -157,7 +156,7 @@ impl MovePicker {
 
     #[inline]
     fn select_next(&self, moves: &[ScoredMove]) -> (usize, Move) {
-        /*let i = moves
+        let i = moves
             .iter()
             .enumerate()
             .skip(self.cursor)
@@ -165,8 +164,7 @@ impl MovePicker {
             .map(|(i, _)| i)
             .unwrap();
 
-        (i, moves[i].0)*/
-        (self.cursor, moves[self.cursor].0)
+        (i, moves[i].0)
     }
 }
 
