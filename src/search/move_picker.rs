@@ -7,6 +7,9 @@ use std::cmp::Reverse;
 
 pub struct ScoredMove(Move, i32);
 
+// Indexed by PieceType as usize (Pawn, Knight, Bishop, Rook, Queen, King)
+const PIECE_VALUE: [i32; 6] = [100, 320, 330, 500, 900, 20000];
+
 pub struct MoveStack {
     stack: Vec<ScoredMove>,
     start: [usize; MAX_PLY + 1],
@@ -106,18 +109,14 @@ impl MovePicker {
             let mut i = 0;
             for j in 0..moves.len() {
                 let mv = moves[j].0;
-                if mv.flag().is_noisy() {
+                if moves[j].0.flag().is_noisy() {
                     // Score noisies here (moves[j].1 = pluh)
-                    let attacker = mv
-                        .flag()
-                        .promotion()
-                        .or(pos.board().piece_on(mv.src()))
-                        .unwrap();
-                    let attacker_value = Params::piece_value(attacker);
+                    let attacker = mv.flag().promotion().or(board.piece_on(mv.src())).unwrap();
+                    let attacker_value = PIECE_VALUE[attacker as usize];
                     let victim_value = if mv.flag() == MoveFlag::EnPassant {
-                        Params::piece_value(Piece::Pawn)
+                        PIECE_VALUE[Piece::Pawn as usize]
                     } else if mv.flag().is_capture() {
-                        Params::piece_value(pos.board().piece_on(mv.dest()).unwrap())
+                        PIECE_VALUE[board.piece_on(mv.dest()).unwrap() as usize]
                     } else {
                         0
                     };
