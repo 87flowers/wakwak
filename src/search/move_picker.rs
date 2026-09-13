@@ -1,11 +1,14 @@
 use crate::board::Board;
-use crate::common::Move;
+use crate::common::{Move, MoveFlag, Piece};
 use crate::position::Position;
 use crate::search::{MAX_PLY, ThreadData};
 use crate::util::Abort;
 use std::cmp::Reverse;
 
 pub struct ScoredMove(Move, i32);
+
+// Indexed by PieceType as usize (Pawn, Knight, Bishop, Rook, Queen, King)
+const PIECE_VALUE: [i32; 6] = [100, 320, 330, 500, 900, 20000];
 
 pub struct MoveStack {
     stack: Vec<ScoredMove>,
@@ -93,7 +96,6 @@ impl MovePicker {
     #[inline]
     pub fn skip_quiets(&mut self) {
         self.skip_quiets = true;
-
         if matches!(self.stage, Stage::YieldQuiet) {
             self.stage = Stage::Finished;
         }
@@ -101,14 +103,25 @@ impl MovePicker {
 
     pub fn next(&mut self, pos: &Position, thread: &mut ThreadData) -> Option<Move> {
         let moves = thread.move_stack.get_mut();
+        let board = pos.board();
 
         if self.stage == Stage::SplitNoisy {
             // Move all noisies to the front of the list
             let mut i = 0;
             for j in 0..moves.len() {
+                let mv = moves[j].0;
                 if moves[j].0.flag().is_noisy() {
                     // Score noisies here (moves[j].1 = pluh)
-
+                    let attacker = mv.flag().promotion().or(board.piece_on(mv.src())).unwrap();
+                    let attacker_value = PIECE_VALUE[attacker as usize];
+                    let victim_value = if mv.flag() == MoveFlag::EnPassant {
+                        PIECE_VALUE[Piece::Pawn as usize]
+                    } else if mv.flag().is_capture() {
+                        PIECE_VALUE[board.piece_on(mv.dest()).unwrap() as usize]
+                    } else {
+                        0
+                    };
+                    moves[j].1 = victim_value - attacker_value;
                     moves.swap(i, j);
                     i += 1;
                 } else {
@@ -120,8 +133,7 @@ impl MovePicker {
             self.noisy_count = i;
             self.stage = Stage::YieldNoisy;
 
-            // TODO: Uncomment this when implementing noisy move ordering
-            //moves[..self.noisy_count].sort_unstable_by_key(|m| Reverse(m.1));
+            moves[..self.noisy_count].sort_unstable_by_key(|m| Reverse(m.1));
         }
 
         if self.stage == Stage::YieldNoisy {
