@@ -1,7 +1,7 @@
+use super::piece_square_tables::PIECE_SQUARE_TABLES;
 use crate::board::Board;
 use crate::common::Color;
 use crate::common::Piece::{Bishop, King, Knight, Pawn, Queen, Rook};
-use super::piece_square_tables::PIECE_SQUARE_TABLES;
 
 const PIECE_VALUES: [i32; 6] = [100, 320, 330, 500, 900, 0];
 const PIECE_SCORES: [[i32; 64]; 6] = combine_scores(PIECE_VALUES, PIECE_SQUARE_TABLES);
