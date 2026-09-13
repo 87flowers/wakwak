@@ -70,7 +70,8 @@ const MG_KING: [i32; 64] = [
      -65,   23,   16,  -15,  -56,  -34,    2,   13,
 ];
 
-pub(super) const MG_PIECE_SQUARE_TABLES: [[i32; 64]; 6] = [MG_PAWN, MG_KNIGHT, MG_BISHOP, MG_ROOK, MG_QUEEN, MG_KING];
+pub(super) const MG_PIECE_SQUARE_TABLES: [[i32; 64]; 6] =
+    [MG_PAWN, MG_KNIGHT, MG_BISHOP, MG_ROOK, MG_QUEEN, MG_KING];
 
 #[rustfmt::skip]
 const EG_PAWN: [i32; 64] = [
@@ -144,4 +145,5 @@ const EG_KING: [i32; 64] = [
      -74,  -35,  -18,  -18,  -11,   15,    4,  -17,
 ];
 
-pub(super) const EG_PIECE_SQUARE_TABLES: [[i32; 64]; 6] = [EG_PAWN, EG_KNIGHT, EG_BISHOP, EG_ROOK, EG_QUEEN, EG_KING];
+pub(super) const EG_PIECE_SQUARE_TABLES: [[i32; 64]; 6] =
+    [EG_PAWN, EG_KNIGHT, EG_BISHOP, EG_ROOK, EG_QUEEN, EG_KING];
