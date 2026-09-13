@@ -103,6 +103,7 @@ impl MovePicker {
 
     pub fn next(&mut self, pos: &Position, thread: &mut ThreadData) -> Option<Move> {
         let moves = thread.move_stack.get_mut();
+        let board = pos.board();
 
         if self.stage == Stage::SplitNoisy {
             // Move all noisies to the front of the list
