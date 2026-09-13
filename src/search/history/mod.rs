@@ -18,10 +18,11 @@ impl History {
 
     #[inline]
     pub fn update(&mut self, board: &Board, depth: i32, best_move: Move, failed_quiets: &[Move]) {
-        self.update_quiet::<true>(board, depth, best_move);
-
-        for &quiet in failed_quiets {
-            self.update_quiet::<false>(board, depth, quiet);
+        if best_move.flag().is_quiet() {
+            self.update_quiet::<true>(board, depth, best_move);
+            for &quiet in failed_quiets {
+                self.update_quiet::<false>(board, depth, quiet);
+            }
         }
     }
 
