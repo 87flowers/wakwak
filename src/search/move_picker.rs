@@ -3,6 +3,7 @@ use crate::common::Move;
 use crate::position::Position;
 use crate::search::{MAX_PLY, ThreadData};
 use crate::util::Abort;
+use std::cmp::Reverse;
 
 pub struct ScoredMove(Move, i32);
 
@@ -118,14 +119,16 @@ impl MovePicker {
 
             self.noisy_count = i;
             self.stage = Stage::YieldNoisy;
+
+            // TODO: Uncomment this when implementing noisy move ordering
+            //moves[..self.noisy_count].sort_unstable_by_key(|m| Reverse(m.1));
         }
 
         if self.stage == Stage::YieldNoisy {
             if self.cursor >= self.noisy_count {
                 self.stage = Stage::YieldQuiet;
+                moves[self.noisy_count..].sort_unstable_by_key(|m| Reverse(m.1));
             } else {
-                // TODO: change this to use `select_next` when implementing noisy move ordering
-
                 self.cursor += 1;
                 return Some(moves[self.cursor - 1].0);
             }
@@ -142,29 +145,13 @@ impl MovePicker {
                 if self.cursor >= moves.len() {
                     self.stage = Stage::Finished;
                 } else {
-                    let (i, mv) = self.select_next(moves);
-                    moves.swap(self.cursor, i);
                     self.cursor += 1;
-
-                    return Some(mv);
+                    return Some(moves[self.cursor - 1].0);
                 }
             }
         }
 
         None
-    }
-
-    #[inline]
-    fn select_next(&self, moves: &[ScoredMove]) -> (usize, Move) {
-        let i = moves
-            .iter()
-            .enumerate()
-            .skip(self.cursor)
-            .max_by_key(|(_, mv)| mv.1)
-            .map(|(i, _)| i)
-            .unwrap();
-
-        (i, moves[i].0)
     }
 }
 
