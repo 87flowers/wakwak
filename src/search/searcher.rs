@@ -1,7 +1,7 @@
 use crate::engine::EngineOptions;
 use crate::position::Position;
 use crate::search::{
-    MAX_PLY, MoveStack, SearchInfo, SearchStack, TimeManager, iterative_deepening,
+    History, MAX_PLY, MoveStack, SearchInfo, SearchStack, TimeManager, iterative_deepening,
 };
 use crate::uci::SearchLimit;
 use crate::util::{BatchedAtomicCounter, Receiver, Sender, channel};
@@ -154,7 +154,9 @@ fn thread_loop(mut rx: Receiver<ThreadCommand>, shared: Arc<SharedData>, id: usi
                 thread.reset();
                 iterative_deepening(position, &mut thread, &shared, options, info);
             }
-            ThreadCommand::NewGame => {}
+            ThreadCommand::NewGame => {
+                thread.history = unsafe { Box::new_zeroed().assume_init() };
+            }
             ThreadCommand::Sync => {}
             ThreadCommand::Quit => return,
         }
@@ -182,6 +184,7 @@ pub struct ThreadData {
     pub nodes: BatchedAtomicCounter,
     pub move_stack: MoveStack,
     pub stack: Vec<SearchStack>,
+    pub history: Box<History>,
     pub sel_depth: usize,
     pub stop: bool,
     pub id: usize,
@@ -194,6 +197,7 @@ impl ThreadData {
             nodes: BatchedAtomicCounter::new(nodes),
             move_stack: MoveStack::default(),
             stack: vec![SearchStack::default(); MAX_PLY + 1],
+            history: unsafe { Box::new_zeroed().assume_init() },
             sel_depth: 0,
             stop: false,
             id,
