@@ -1,10 +1,13 @@
 use crate::board::Board;
-use crate::common::Move;
+use crate::common::{Move, MoveFlag, Piece};
+use crate::position::{Position};
 use crate::search::MAX_PLY;
 use crate::util::Abort;
 
-#[expect(dead_code)]
 pub struct ScoredMove(Move, i32);
+
+// Indexed by PieceType as usize (Pawn, Knight, Bishop, Rook, Queen, King)
+const PIECE_VALUE: [i32; 6] = [100, 320, 330, 500, 900, 20000];
 
 pub struct MoveStack {
     stack: Vec<ScoredMove>,
@@ -92,20 +95,30 @@ impl MovePicker {
     #[inline]
     pub fn skip_quiets(&mut self) {
         self.skip_quiets = true;
-
         if matches!(self.stage, Stage::YieldQuiet) {
             self.stage = Stage::Finished;
         }
     }
 
-    pub fn next(&mut self, moves: &mut [ScoredMove]) -> Option<Move> {
+    pub fn next(&mut self, position: &Position, moves: &mut [ScoredMove]) -> Option<Move> {
+        let board = position.board();
         if self.stage == Stage::SplitNoisy {
             // Move all noisies to the front of the list
             let mut i = 0;
             for j in 0..moves.len() {
+                let mv = moves[j].0;
                 if moves[j].0.flag().is_noisy() {
                     // Score noisies here (moves[j].1 = pluh)
-
+                    let attacker = mv.flag().promotion().or(board.piece_on(mv.src())).unwrap();
+                    let attacker_value = PIECE_VALUE[attacker as usize];
+                    let victim_value = if mv.flag() == MoveFlag::EnPassant {
+                        PIECE_VALUE[Piece::Pawn as usize]
+                    } else if mv.flag().is_capture() {
+                        PIECE_VALUE[board.piece_on(mv.dest()).unwrap() as usize]
+                    } else {
+                        0
+                    };
+                    moves[j].1 = victim_value - attacker_value;
                     moves.swap(i, j);
                     i += 1;
                 } else {
@@ -124,6 +137,7 @@ impl MovePicker {
                 self.stage = Stage::YieldQuiet;
             } else {
                 let (i, mv) = self.select_next(&moves[..self.noisy_count]);
+                println!("{} -> score {}", mv.display(false, false), moves[i].1);
                 moves.swap(self.cursor, i);
                 self.cursor += 1;
 
@@ -157,7 +171,7 @@ impl MovePicker {
 
     #[inline]
     fn select_next(&self, moves: &[ScoredMove]) -> (usize, Move) {
-        /*let i = moves
+        let i = moves
             .iter()
             .enumerate()
             .skip(self.cursor)
@@ -165,8 +179,7 @@ impl MovePicker {
             .map(|(i, _)| i)
             .unwrap();
 
-        (i, moves[i].0)*/
-        (self.cursor, moves[self.cursor].0)
+        (i, moves[i].0)
     }
 }
 
@@ -180,4 +193,17 @@ impl Default for MovePicker {
             cursor: 0,
         }
     }
+}
+
+#[test]
+fn debug_print_scores() {
+    let board = Board::from_fen("r3k3/1P6/8/1q1pP3/2P5/8/P4PPP/4K3 w - d6 0 1").unwrap();
+    let pos = Position::new(board);
+    let mut move_stack = MoveStack::default();
+    move_stack.push(pos.board());
+
+    let mut picker = MovePicker::default();
+    while let Some(_) = picker.next(&pos, move_stack.get_mut()) {
+    }
+    assert!(false)
 }

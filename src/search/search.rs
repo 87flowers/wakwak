@@ -209,7 +209,7 @@ fn search<Node: NodeType>(
     let mut move_picker = MovePicker::default();
     let mut move_count = 0;
 
-    while let Some(mv) = move_picker.next(thread.move_stack.get_mut()) {
+    while let Some(mv) = move_picker.next(pos, thread.move_stack.get_mut()) {
         pos.make_move(mv);
         let score = -search::<PV>(pos, thread, shared, -beta, -alpha, depth - 1, ply + 1);
         pos.unmake_move();
