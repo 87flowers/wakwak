@@ -1,7 +1,7 @@
 use crate::board::Board;
-use crate::common::Move;
+use crate::common::{Move, MoveFlag, Piece};
 use crate::position::Position;
-use crate::search::{MAX_PLY, ThreadData};
+use crate::search::{MAX_PLY, Params, ThreadData};
 use crate::util::Abort;
 use std::cmp::Reverse;
 
@@ -93,7 +93,6 @@ impl MovePicker {
     #[inline]
     pub fn skip_quiets(&mut self) {
         self.skip_quiets = true;
-
         if matches!(self.stage, Stage::YieldQuiet) {
             self.stage = Stage::Finished;
         }
@@ -106,9 +105,23 @@ impl MovePicker {
             // Move all noisies to the front of the list
             let mut i = 0;
             for j in 0..moves.len() {
-                if moves[j].0.flag().is_noisy() {
+                let mv = moves[j].0;
+                if mv.flag().is_noisy() {
                     // Score noisies here (moves[j].1 = pluh)
-
+                    let attacker = mv
+                        .flag()
+                        .promotion()
+                        .or(pos.board().piece_on(mv.src()))
+                        .unwrap();
+                    let attacker_value = Params::piece_value(attacker);
+                    let victim_value = if mv.flag() == MoveFlag::EnPassant {
+                        Params::piece_value(Piece::Pawn)
+                    } else if mv.flag().is_capture() {
+                        Params::piece_value(pos.board().piece_on(mv.dest()).unwrap())
+                    } else {
+                        0
+                    };
+                    moves[j].1 = victim_value - attacker_value;
                     moves.swap(i, j);
                     i += 1;
                 } else {
@@ -120,8 +133,7 @@ impl MovePicker {
             self.noisy_count = i;
             self.stage = Stage::YieldNoisy;
 
-            // TODO: Uncomment this when implementing noisy move ordering
-            //moves[..self.noisy_count].sort_unstable_by_key(|m| Reverse(m.1));
+            moves[..self.noisy_count].sort_unstable_by_key(|m| Reverse(m.1));
         }
 
         if self.stage == Stage::YieldNoisy {

@@ -1,3 +1,4 @@
+use crate::common::Piece;
 #[cfg(feature = "tune")]
 use crate::uci::UciParseError;
 use std::cell::UnsafeCell;
@@ -67,6 +68,12 @@ params! {
 
     rfp_base: i32 => 0;
     rfp_scale: i32 => 50;
+
+    mvvlva_pawn:   i32 => 100;
+    mvvlva_knight: i32 => 320;
+    mvvlva_bishop: i32 => 330;
+    mvvlva_rook:   i32 => 500;
+    mvvlva_queen:  i32 => 900;
 }
 
 impl Params {
@@ -83,5 +90,17 @@ impl Params {
     #[inline]
     pub const fn rfp_margin(depth: i32) -> i32 {
         Self::rfp_base() + Self::rfp_scale() * depth
+    }
+
+    #[inline]
+    pub const fn piece_value(piece: Piece) -> i32 {
+        match piece {
+            Piece::Pawn => Self::mvvlva_pawn(),
+            Piece::Knight => Self::mvvlva_knight(),
+            Piece::Bishop => Self::mvvlva_bishop(),
+            Piece::Rook => Self::mvvlva_rook(),
+            Piece::Queen => Self::mvvlva_queen(),
+            Piece::King => 20000,
+        }
     }
 }
