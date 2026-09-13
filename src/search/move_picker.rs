@@ -1,6 +1,6 @@
 use crate::board::Board;
 use crate::common::{Move, MoveFlag, Piece};
-use crate::position::{Position};
+use crate::position::Position;
 use crate::search::MAX_PLY;
 use crate::util::Abort;
 
@@ -137,7 +137,7 @@ impl MovePicker {
                 self.stage = Stage::YieldQuiet;
             } else {
                 let (i, mv) = self.select_next(&moves[..self.noisy_count]);
-                println!("{} -> score {}", mv.display(false, false), moves[i].1);
+                // println!("{} -> score {}", mv.display(false, false), moves[i].1);
                 moves.swap(self.cursor, i);
                 self.cursor += 1;
 
@@ -203,7 +203,5 @@ fn debug_print_scores() {
     move_stack.push(pos.board());
 
     let mut picker = MovePicker::default();
-    while let Some(_) = picker.next(&pos, move_stack.get_mut()) {
-    }
-    assert!(false)
+    while picker.next(&pos, move_stack.get_mut()).is_some() {}
 }
