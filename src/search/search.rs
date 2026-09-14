@@ -214,9 +214,11 @@ fn search<Node: NodeType>(
         }
     }
 
+    let in_check = pos.board().in_check();
     let raw_eval = eval(pos.board());
     let corr = thread.history.corr(pos.board());
     let static_eval = adjust_eval(raw_eval, corr);
+    let raw_eval = eval(pos.board());
 
     if depth <= 0 {
         return static_eval;
@@ -362,7 +364,8 @@ fn search<Node: NodeType>(
         .insert(pos.board().hash(), best_move, best_score, depth, flag);
 
     let static_eval = adjust_eval(raw_eval, thread.history.corr(pos.board()));
-    if best_move.is_none_or(|mv| mv.flag().is_quiet())
+    if !in_check
+        && best_move.is_none_or(|mv| mv.flag().is_quiet())
         && flag.bounds_match(best_score, static_eval, static_eval)
     {
         thread

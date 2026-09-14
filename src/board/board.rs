@@ -137,6 +137,14 @@ impl Board {
     }
 
     #[inline]
+    pub fn in_check(&self) -> bool {
+        // TODO: maybe make it incremental (?) idk
+        let blocks = self.king_capture_blocks(self.stm);
+
+        blocks != Bitboard::FULL && self.duck.is_none_or(|sq| !blocks.has(sq))
+    }
+
+    #[inline]
     pub fn king_capture_blocks(&self, color: Color) -> Bitboard {
         if self.try_king(!color).is_none() {
             return Bitboard::FULL;
