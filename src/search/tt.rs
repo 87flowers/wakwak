@@ -45,7 +45,8 @@ pub enum TTFlag {
 
 impl TTEntry {
     pub fn best_move(&self) -> Option<Move> {
-        Move::from_raw(self.best_move)
+        // SAFETY: `self.best_move` was created via `Move::raw()`, so we can convert it back.
+        unsafe { Move::from_raw(self.best_move) }
     }
 
     pub fn score(&self) -> i16 {

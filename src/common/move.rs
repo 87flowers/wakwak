@@ -26,8 +26,10 @@ impl Move {
         Self(NonZeroU32::new(bits).unwrap())
     }
 
+    /// # Safety
+    /// Must only be called with a `bits` value that was previously returned from [`Move::raw()`].
     #[inline]
-    pub const fn from_raw(bits: u32) -> Option<Self> {
+    pub const unsafe fn from_raw(bits: u32) -> Option<Self> {
         match NonZeroU32::new(bits) {
             Some(nz) => Some(Self(nz)),
             None => None,
