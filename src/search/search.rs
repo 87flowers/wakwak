@@ -4,6 +4,7 @@ use crate::engine::EngineOptions;
 use crate::eval::eval;
 use crate::position::Position;
 use crate::score::Score;
+use crate::search::tt::TTFlag;
 use crate::search::{MovePicker, Params, PrincipalVariation, SearchInfo, SharedData, ThreadData};
 use std::sync::atomic::Ordering;
 
@@ -191,6 +192,18 @@ fn search<Node: NodeType>(
         return Score::draw();
     }
 
+    // Transposition table lookup
+    if !Node::ROOT
+        && let Some(entry) = shared.tt.probe(pos.board().hash())
+    {
+        let tt_flag = entry.flag();
+        let tt_depth = entry.depth() as i32;
+        let tt_score = Score(entry.score() as i32);
+        if tt_depth >= depth && tt_flag.bounds_match(tt_score, alpha, beta) {
+            return tt_score;
+        }
+    }
+
     let static_eval = eval(pos.board());
 
     if depth <= 0 {
@@ -213,6 +226,7 @@ fn search<Node: NodeType>(
     let mut move_picker = MovePicker::default();
     let mut move_count = 0;
     let mut duck_counts: [[u8; Square::COUNT]; Square::COUNT] = [[0; Square::COUNT]; Square::COUNT];
+    let mut flag = TTFlag::Upper;
 
     while let Some(mv) = move_picker.next(pos, thread) {
         let (src, dest) = (mv.src(), mv.dest());
@@ -247,11 +261,13 @@ fn search<Node: NodeType>(
         if score > alpha {
             alpha = score;
             best_move = Some(mv);
+            flag = TTFlag::Exact;
             if Node::PV {
                 update_pv(thread, mv, ply);
             }
 
             if score >= beta {
+                flag = TTFlag::Lower;
                 thread.history.update(
                     pos.board(),
                     depth,
@@ -271,6 +287,14 @@ fn search<Node: NodeType>(
             }
         }
     }
+
+    shared.tt.insert(
+        pos.board().hash(),
+        best_move,
+        best_score.unwrap().0,
+        depth as u8,
+        flag,
+    );
 
     thread.move_stack.pop();
     best_score.unwrap()
