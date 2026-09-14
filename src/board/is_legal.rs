@@ -19,11 +19,13 @@ impl Board {
                 let src_rank = Rank::Second.relative_to(self.stm);
                 let dest_rank = Rank::Fourth.relative_to(self.stm);
                 let between = src.offset(0, self.stm.signum() as isize);
+                let blockers = self.occupied();
 
                 if src_piece != Piece::Pawn
                     || src.rank() != src_rank
                     || dest.rank() != dest_rank
-                    || self.occupied().has(between)
+                    || blockers.has(between)
+                    || blockers.has(dest)
                 {
                     return false;
                 }
@@ -255,6 +257,22 @@ mod tests {
             for &file in File::ALL {
                 // En Passant
 
+                let src = Square::new(file, Rank::Second.relative_to(color));
+                let dest = Square::new(file, Rank::Fourth.relative_to(color));
+
+                all_moves.extend(
+                    Square::ALL
+                        .iter()
+                        .filter(|&&duck| duck != dest)
+                        .map(|&duck| Move::new(src, dest, duck, MoveFlag::DoublePush)),
+                );
+            }
+        }
+
+        for &color in Color::ALL {
+            for &file in File::ALL {
+                // En Passant
+
                 let src = Square::new(file, Rank::Fifth.relative_to(color));
                 let dest = pawn_attacks(src, color);
 
@@ -319,7 +337,7 @@ mod tests {
                     all_moves.extend(
                         Square::ALL
                             .iter()
-                            .filter(|&&sq| !blockers.has(sq))
+                            .filter(|&&duck| !blockers.has(duck))
                             .map(|&duck| Move::new(king_src, rook_src, duck, flag)),
                     );
                 }
