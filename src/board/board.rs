@@ -15,6 +15,7 @@ pub struct Board {
     pub(super) en_passant: Option<EnPassant>,
     pub(super) duck: Option<Square>,
     pub(super) hash: u64,
+    pub(super) pawn_hash: u64,
     pub(super) stm: Color,
     pub(super) fmc: u16,
     pub(super) hmc: u8,
@@ -103,6 +104,11 @@ impl Board {
     #[inline]
     pub fn hash(&self) -> u64 {
         self.hash
+    }
+
+    #[inline]
+    pub fn pawn_hash(&self) -> u64 {
+        self.pawn_hash
     }
 
     #[inline]
@@ -204,7 +210,13 @@ impl Board {
     pub fn toggle_square(&mut self, sq: Square, piece: Piece, color: Color) {
         self.pieces[piece] ^= sq;
         self.colors[color] ^= sq;
-        self.hash ^= ZOBRIST.piece(sq, piece, color);
+
+        let value = ZOBRIST.piece(sq, piece, color);
+        self.hash ^= value;
+
+        if piece == Piece::Pawn {
+            self.pawn_hash ^= value;
+        }
     }
 
     #[inline]
