@@ -93,9 +93,13 @@ params! {
     mvvlva_rook:   i32 => 500;
     mvvlva_queen:  i32 => 900;
 
-    ldp_depth:           i32 => 8;
-    ldp_threshold_base:  i32 => 2;
-    ldp_threshold_scale: i32 => 2;
+    quiet_ldp_depth:           i32 => 8;
+    quiet_ldp_threshold_base:  i32 => 2;
+    quiet_ldp_threshold_scale: i32 => 2;
+
+    noisy_ldp_depth:           i32 => 8;
+    noisy_ldp_threshold_base:  i32 => 4;
+    noisy_ldp_threshold_scale: i32 => 4;
 }
 
 impl Params {
@@ -140,8 +144,21 @@ impl Params {
     }
 
     #[inline]
-    pub const fn ldp_threshold(depth: i32) -> i32 {
-        Self::ldp_threshold_base() + Self::ldp_threshold_scale() * depth
+    pub const fn ldp_depth(is_quiet: bool) -> i32 {
+        if is_quiet {
+            Self::quiet_ldp_depth()
+        } else {
+            Self::noisy_ldp_depth()
+        }
+    }
+
+    #[inline]
+    pub const fn ldp_threshold(depth: i32, is_quiet: bool) -> i32 {
+        if is_quiet {
+            Self::quiet_ldp_threshold_base() + Self::quiet_ldp_threshold_scale() * depth
+        } else {
+            Self::noisy_ldp_threshold_base() + Self::noisy_ldp_threshold_scale() * depth
+        }
     }
 
     #[inline]

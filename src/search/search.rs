@@ -276,10 +276,9 @@ fn search<Node: NodeType>(
         a certain move, we can be reasonably confident they're not gonna get
         much better, so we can skip the rest of them.
         */
-        if is_quiet
-            && safe == Bitboard::FULL
-            && depth <= Params::ldp_depth()
-            && duck_counts[src][dest] >= Params::ldp_threshold(depth) as u8
+        if safe == Bitboard::FULL
+            && depth <= Params::ldp_depth(is_quiet)
+            && duck_counts[src][dest] >= Params::ldp_threshold(depth, is_quiet) as u8
         {
             continue;
         }
