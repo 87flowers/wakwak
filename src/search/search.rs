@@ -192,7 +192,11 @@ fn search<Node: NodeType>(
         return Score::draw();
     }
 
-    // Transposition table lookup
+    /*
+    Transposition Table Cutoffs (TT Cutoffs): If we've already searched this position
+    and the stored result indicates that its value is outside the window, we can return
+    that stored result instead of wasting time searching it again.
+    */
     if !Node::ROOT
         && let Some(entry) = shared.tt.probe(pos.board().hash())
     {
@@ -210,6 +214,11 @@ fn search<Node: NodeType>(
         return static_eval;
     }
 
+    /*
+    Reverse Futility Pruning: If our evaluation of the position is already
+    so high that even a pessimistic estimate is still above beta, we can
+    be reasonably confident that a further search will also fail high.
+    */
     if !Node::ROOT
         && depth <= Params::rfp_depth()
         && static_eval - Params::rfp_margin(depth) >= beta
@@ -226,17 +235,23 @@ fn search<Node: NodeType>(
     let mut move_picker = MovePicker::default();
     let mut move_count = 0;
     let mut duck_counts: [[u8; Square::COUNT]; Square::COUNT] = [[0; Square::COUNT]; Square::COUNT];
-    let mut duck_safety = [(None, Bitboard::FULL); Square::COUNT];
     let mut duck_refutations = [(None, Bitboard::EMPTY); Square::COUNT];
+    let mut duck_safety = [(None, Bitboard::FULL); Square::COUNT];
     let mut flag = TTFlag::Upper;
 
     while let Some(mv) = move_picker.next(pos, thread) {
         let (src, dest) = (mv.src(), mv.dest());
         let piece_move = Some((src, mv.flag()));
+        let is_quiet = mv.flag().is_quiet();
+
+        /*
+        Duck Refutations: If the opponent immediately refutes a duck move,
+        we can skip the rest of the duck moves that don't block the refutation(s).
+        */
         if duck_refutations[dest].0 == piece_move && duck_refutations[dest].1.has(mv.duck()) {
             continue;
         }
-        let is_quiet = mv.flag().is_quiet();
+
         if duck_safety[dest].0 != Some(src) {
             let mut board = *pos.board();
             // TODO: Calculate king capture blocks without making the full move.
@@ -245,6 +260,11 @@ fn search<Node: NodeType>(
         }
         let safe = duck_safety[dest].1;
 
+        /*
+        Late Duck Pruning (LDP): After a certain number of duck moves for
+        a certain move, we can be reasonably confident they're not gonna get
+        much better, so we can skip the rest of them.
+        */
         if is_quiet
             && safe == Bitboard::FULL
             && depth <= Params::ldp_depth()
@@ -255,8 +275,11 @@ fn search<Node: NodeType>(
 
         duck_counts[src][dest] += 1;
         pos.make_move(mv);
-        // Duck or die pruning
-        // Score placements that allow immediate king capture as losses, unless the turn ends in a draw.
+
+        /*
+        Duck or Die Pruning: Treat duck moves that let the opponent capture
+        the king as instant losses, unless it is a repetition.
+        */
         let score = if !safe.has(mv.duck()) && pos.board().hmc() < 100 && !pos.repetition() {
             // Clear the previous child's continuation because this move skips recursive search.
             thread.stack[ply + 1].pv.clear();
@@ -275,6 +298,7 @@ fn search<Node: NodeType>(
             return Score::ZERO;
         }
 
+        // Duck Refutations
         if score <= alpha
             && let Some(reply) = thread.stack[ply + 1].pv.first()
             && reply.flag().is_capture()
