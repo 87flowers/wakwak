@@ -85,8 +85,8 @@ params! {
     rfp_scale: i32 => 50;
 
     nmp_depth:          i32 => 3;
-    nmp_eval_margin:    i32 => 200;
-    nmp_history_margin: i32 => 300;
+    nmp_eval_margin:    i32 => 20;
+    nmp_history_margin: i32 => 0;
 
     mvvlva_pawn:   i32 => 100;
     mvvlva_knight: i32 => 320;
