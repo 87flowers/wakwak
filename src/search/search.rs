@@ -192,7 +192,11 @@ fn search<Node: NodeType>(
         return Score::draw();
     }
 
-    // Transposition table lookup
+    /*
+    Transposition Table Cutoffs (TT Cutoffs): If we've already searched this position
+    and the stored result indicates that its value is outside the window, we can return
+    that stored result instead of wasting time searching it again.
+    */
     let tt_entry = shared.tt.probe(pos.board().hash());
     let tt_move = tt_entry.and_then(|e| e.best_move());
 
