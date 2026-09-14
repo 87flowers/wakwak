@@ -217,6 +217,38 @@ fn search<Node: NodeType>(
         return static_eval;
     }
 
+    if !Node::ROOT && depth >= Params::nmp_depth() && static_eval >= beta + Params::nmp_eval_margin() {
+        let r = 2;
+
+        thread.move_stack.push_duck_only(pos.board());
+        let mut best_score = None;
+        let mut move_picker = MovePicker::default();
+
+        while let Some(mv) = move_picker.next(pos, thread) {
+            if thread.history.duck(pos.board(), mv) < Params::nmp_history_margin() {
+                break;
+            }
+
+            pos.make_duck_only_move(mv);
+            let score = -search::<PV>(pos, thread, shared, -beta, -beta + 1, depth - r, ply + 1);
+            pos.unmake_move();
+
+            if score > best_score {
+                best_score = Some(score);
+            }
+
+            if score >= beta {
+                break;
+            }
+        }
+
+        thread.move_stack.pop();
+
+        if let Some(best_score) = best_score && best_score >= beta {
+            return best_score;
+        }
+    }
+
     let mut best_move = None;
     let mut best_score = None;
 

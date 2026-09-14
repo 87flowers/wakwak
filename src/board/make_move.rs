@@ -108,6 +108,14 @@ impl Board {
     }
 
     #[inline]
+    pub fn make_duck_only_move(&mut self, mv: Move) {
+        self.hmc = 0;
+        self.toggle_stm();
+        self.set_en_passant(None);
+        self.set_duck(Some(mv.duck()));
+    }
+
+    #[inline]
     fn remove_castling_right(&mut self, color: Color, sq: Square) {
         if sq.rank() == Rank::First.relative_to(color) {
             let rights = self.castling_rights(color);

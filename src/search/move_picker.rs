@@ -1,7 +1,7 @@
 use crate::board::Board;
 use crate::common::{Move, MoveFlag, Piece};
 use crate::position::Position;
-use crate::search::{MAX_PLY, Params, ThreadData};
+use crate::search::{Params, ThreadData, MAX_PLY};
 use crate::util::Abort;
 use std::cmp::Reverse;
 
@@ -25,6 +25,26 @@ impl MoveStack {
 
         let mut cursor = self.start[self.ply];
         board.gen_moves(|moves| {
+            self.stack.extend(moves.iter().map(|w| ScoredMove(w, 0)));
+            cursor += moves.len();
+            Abort::No
+        });
+
+        self.start[self.ply + 1] = cursor;
+        self.ply += 1;
+    }
+
+    #[inline]
+    pub fn push_duck_only(&mut self, board: &Board) {
+        debug_assert!(
+            self.ply < MAX_PLY,
+            "MoveStack::push(): Attempted to push on ply `MAX_PLY`"
+        );
+
+        self.stack.truncate(self.start[self.ply]);
+
+        let mut cursor = self.start[self.ply];
+        board.gen_duck_only_moves(|moves| {
             self.stack.extend(moves.iter().map(|w| ScoredMove(w, 0)));
             cursor += moves.len();
             Abort::No

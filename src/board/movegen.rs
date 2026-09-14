@@ -1,8 +1,8 @@
 use crate::abort_if;
-use crate::board::{Board, CastlingDirection, bishop_attacks, rook_attacks};
+use crate::board::{bishop_attacks, rook_attacks, Board, CastlingDirection};
 use crate::common::{
-    Bitboard, DuckMoves, MoveFlag, North, NorthEast, NorthWest, Piece, Rank, South, SouthEast,
-    SouthWest, Square, between, king_attacks, knight_attacks,
+    between, king_attacks, knight_attacks, Bitboard, DuckMoves, MoveFlag, North, NorthEast,
+    NorthWest, Piece, Rank, South, SouthEast, SouthWest, Square,
 };
 use crate::util::Abort;
 
@@ -29,6 +29,20 @@ impl Board {
                 Abort::No
             }
         }) == Abort::Yes
+    }
+
+    #[inline]
+    pub fn gen_duck_only_moves<V: FnMut(DuckMoves) -> Abort>(&self, mut visitor: V) -> Abort {
+        let empty = !self.occupied();
+
+        abort_if!(visitor(DuckMoves::new(
+            Square::H8,
+            Square::H8,
+            MoveFlag::Normal,
+            empty
+        )));
+
+        Abort::No
     }
 
     #[inline]

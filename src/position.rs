@@ -30,6 +30,12 @@ impl Position {
     }
 
     #[inline]
+    pub fn make_duck_only_move(&mut self, mv: Move) {
+        self.previous_boards.push(self.current);
+        self.current.make_duck_only_move(mv);
+    }
+
+    #[inline]
     pub fn unmake_move(&mut self) {
         self.current = self.previous_boards.pop().unwrap();
     }
