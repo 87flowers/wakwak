@@ -259,15 +259,11 @@ impl Board {
     #[inline]
     pub fn set_duck(&mut self, duck: Option<Square>) {
         if let Some(prev) = core::mem::replace(&mut self.duck, duck) {
-            let value = ZOBRIST.duck(prev);
-            self.hash ^= value;
-            self.pawn_hash ^= value;
+            self.hash ^= ZOBRIST.duck(prev);
         }
 
         if let Some(sq) = duck {
-            let value = ZOBRIST.duck(sq);
-            self.hash ^= value;
-            self.pawn_hash ^= value;
+            self.hash ^= ZOBRIST.duck(sq);
         }
     }
 
