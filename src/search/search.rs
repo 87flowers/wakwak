@@ -11,6 +11,7 @@ use std::sync::atomic::Ordering;
 #[derive(Debug, Clone, Default)]
 pub struct SearchStack {
     pv: PrincipalVariation,
+    mv: Option<Move>,
 }
 
 pub fn iterative_deepening(
@@ -126,7 +127,6 @@ trait NodeType {
 
 struct Root;
 struct PV;
-#[expect(dead_code)]
 struct NonPV;
 
 impl NodeType for Root {
@@ -177,6 +177,7 @@ fn search<Node: NodeType>(
     if Node::PV {
         thread.stack[ply].pv.clear();
     }
+    thread.stack[ply].mv = None;
 
     thread.sel_depth = thread.sel_depth.max(ply);
 
@@ -230,9 +231,7 @@ fn search<Node: NodeType>(
     so high that even a pessimistic estimate is still above beta, we can
     be reasonably confident that a further search will also fail high.
     */
-    if !Node::ROOT
-        && depth <= Params::rfp_depth()
-        && static_eval - Params::rfp_margin(depth) >= beta
+    if !Node::PV && depth <= Params::rfp_depth() && static_eval - Params::rfp_margin(depth) >= beta
     {
         return static_eval;
     }
@@ -241,7 +240,8 @@ fn search<Node: NodeType>(
 
     let mut best_move = None;
     let mut best_score = None;
-    let mut move_count = 0;
+    let mut legal_moves = 0;
+    let mut searched_moves = 0;
     let mut failed_quiets = Vec::new();
     let mut failed_noisies = Vec::new();
     let mut move_picker = MovePicker::new(tt_move);
@@ -254,6 +254,7 @@ fn search<Node: NodeType>(
         let (src, dest) = (mv.src(), mv.dest());
         let piece_move = Some((src, mv.flag()));
         let is_quiet = mv.flag().is_quiet();
+        legal_moves += 1;
 
         /*
         Duck Refutations: If the opponent immediately refutes a duck move,
@@ -295,11 +296,32 @@ fn search<Node: NodeType>(
             thread.stack[ply + 1].pv.clear();
             Score::mated(ply + 2)
         } else {
-            -search::<PV>(pos, thread, shared, -beta, -alpha, depth - 1, ply + 1)
+            let new_depth = depth - 1;
+            let mut score = -Score::INFINITE;
+            if !Node::PV || legal_moves > 1 {
+                let reduction = if depth >= 3 && searched_moves > 6 && is_quiet {
+                    1
+                } else {
+                    0
+                };
+                score = -search::<NonPV>(
+                    pos,
+                    thread,
+                    shared,
+                    -alpha - 1,
+                    -alpha,
+                    new_depth - reduction,
+                    ply + 1,
+                )
+            }
+            if Node::PV && (legal_moves == 1 || score > alpha) {
+                score = -search::<PV>(pos, thread, shared, -beta, -alpha, new_depth, ply + 1);
+            }
+            score
         };
         pos.unmake_move();
 
-        if Node::ROOT && move_count == 0 {
+        if Node::ROOT && searched_moves == 0 {
             update_pv(thread, mv, ply);
         }
 
@@ -310,7 +332,7 @@ fn search<Node: NodeType>(
 
         // Duck Refutations
         if score <= alpha
-            && let Some(reply) = thread.stack[ply + 1].pv.first()
+            && let Some(reply) = thread.stack[ply + 1].mv
         {
             let refuted = !(between(reply.src(), reply.dest()) | reply.dest() | reply.duck());
             if duck_refutations[dest].0 == piece_move {
@@ -320,7 +342,7 @@ fn search<Node: NodeType>(
             }
         }
 
-        move_count += 1;
+        searched_moves += 1;
 
         if score > best_score {
             best_score = Some(score);
@@ -329,6 +351,7 @@ fn search<Node: NodeType>(
         if score > alpha {
             alpha = score;
             best_move = Some(mv);
+            thread.stack[ply].mv = best_move;
             flag = TTFlag::Exact;
             if Node::PV {
                 update_pv(thread, mv, ply);
