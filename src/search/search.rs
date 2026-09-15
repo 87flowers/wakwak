@@ -256,7 +256,7 @@ fn search<Node: NodeType>(
         return static_eval;
     }
 
-    thread.move_stack.push(pos.board());
+    thread.move_stack.push_ply();
 
     let mut best_move = None;
     let mut best_score = None;
@@ -346,7 +346,7 @@ fn search<Node: NodeType>(
         }
 
         if thread.stop {
-            thread.move_stack.pop();
+            thread.move_stack.pop_ply();
             return Score::ZERO;
         }
 
@@ -412,6 +412,6 @@ fn search<Node: NodeType>(
             .update_corr(pos.board(), depth, best_score, static_eval);
     }
 
-    thread.move_stack.pop();
+    thread.move_stack.pop_ply();
     best_score
 }
