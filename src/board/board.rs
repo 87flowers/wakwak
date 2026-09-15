@@ -232,6 +232,7 @@ impl Board {
             Piece::Pawn => self.pawn_hash ^= value,
             Piece::Knight => self.minor_hash ^= value,
             Piece::Bishop => self.minor_hash ^= value,
+            Piece::King => self.minor_hash ^= value,
             _ => {}
         }
     }
