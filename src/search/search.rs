@@ -331,9 +331,7 @@ fn search<Node: NodeType>(
         }
 
         // Duck Refutations
-        if score <= alpha
-            && let Some(reply) = thread.stack[ply + 1].mv
-        {
+        if let Some(reply) = thread.stack[ply + 1].mv {
             let refuted = !(between(reply.src(), reply.dest()) | reply.dest() | reply.duck());
             if duck_refutations[dest].0 == piece_move {
                 duck_refutations[dest].1 |= refuted;
