@@ -126,6 +126,13 @@ impl Board {
     }
 
     #[inline]
+    pub fn kpr_hash(&self) -> u64 {
+        self.piece_hashes[Piece::King]
+            ^ self.piece_hashes[Piece::Pawn]
+            ^ self.piece_hashes[Piece::Rook]
+    }
+
+    #[inline]
     pub fn duckless_hash(&self) -> u64 {
         self.hash ^ self.duck.map_or(0, |sq| ZOBRIST.duck(sq))
     }
