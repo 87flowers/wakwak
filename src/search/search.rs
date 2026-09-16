@@ -380,17 +380,8 @@ fn search<Node: NodeType>(
 
         // Duck Refutations
         if let Some(reply) = thread.stack[ply + 1].mv {
-            let blocked = if let Some(dir) = reply.flag().castling_dir() {
-                let king_dest = Square::new(dir.king_dest(), reply.src().rank());
-                let rook_dest = Square::new(dir.rook_dest(), reply.src().rank());
-                between(reply.src(), king_dest)
-                    | between(reply.dest(), rook_dest)
-                    | king_dest
-                    | rook_dest
-            } else {
-                between(reply.src(), reply.dest()) | reply.dest()
-            };
-            let refuted = !(blocked | reply.duck());
+            let refuted = !(between(reply.src(), reply.dest()) | reply.dest() | reply.duck());
+
             if duck_refutations[dest].0 == piece_move {
                 duck_refutations[dest].1 |= refuted;
             } else {
