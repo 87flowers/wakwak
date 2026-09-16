@@ -605,6 +605,7 @@ fn qsearch(
     let mut ducks_by_move: [[u8; Square::COUNT]; Square::COUNT] =
         [[0; Square::COUNT]; Square::COUNT];
     let mut duck_counts: [u8; Square::COUNT] = [0; Square::COUNT];
+    let mut duck_refutations = [(None, Bitboard::EMPTY); Square::COUNT];
     let mut duck_safety = [(None, Bitboard::FULL); Square::COUNT];
     let mut move_picker = MovePicker::new(tt_move);
     move_picker.skip_quiets();
@@ -612,6 +613,12 @@ fn qsearch(
     let indices = ContIndices::new(pos);
     while let Some(mv) = move_picker.next(pos, thread, indices) {
         let (src, dest, duck) = (mv.src(), mv.dest(), mv.duck());
+        let piece_move = Some((src, mv.flag()));
+
+        // Duck Refutations
+        if duck_refutations[dest].0 == piece_move && duck_refutations[dest].1.has(mv.duck()) {
+            continue;
+        }
 
         if duck_safety[dest].0 != Some(src) {
             let mut board = *pos.board();
@@ -651,6 +658,17 @@ fn qsearch(
         if thread.stop {
             thread.move_stack.pop_ply();
             return Score::ZERO;
+        }
+
+        // Duck Refutations
+        if let Some(reply) = thread.stack[ply + 1].mv {
+            let refuted = !(between(reply.src(), reply.dest()) | reply.dest() | reply.duck());
+
+            if duck_refutations[dest].0 == piece_move {
+                duck_refutations[dest].1 |= refuted;
+            } else {
+                duck_refutations[dest] = (piece_move, refuted);
+            }
         }
 
         if score > best_score {
