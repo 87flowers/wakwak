@@ -44,7 +44,9 @@ impl Position {
     #[inline]
     pub fn make_null_move(&mut self) {
         let duck = self.previous_boards.last().and_then(|b| b.duck());
+
         self.previous_boards.push(self.current);
+        self.previous_moves.push(None);
         self.current.make_null_move(duck);
     }
 
