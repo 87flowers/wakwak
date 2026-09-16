@@ -5,7 +5,9 @@ use crate::position::Position;
 use crate::score::Score;
 use crate::search::cont::ContIndices;
 use crate::search::tt::TTFlag;
-use crate::search::{MovePicker, Params, PrincipalVariation, SearchInfo, SharedData, ThreadData};
+use crate::search::{
+    MAX_PLY, MovePicker, Params, PrincipalVariation, SearchInfo, SharedData, ThreadData,
+};
 use std::sync::atomic::Ordering;
 
 #[derive(Debug, Clone, Default)]
@@ -188,7 +190,10 @@ fn search<Node: NodeType>(
 
     thread.sel_depth = thread.sel_depth.max(ply);
 
-    // TODO: node counting has to be changed once qsearch is implemented
+    if depth <= 0 {
+        return qsearch::<Node>(pos, thread, shared, alpha, beta, ply);
+    }
+
     if !Node::ROOT {
         thread.nodes.inc();
     }
@@ -247,10 +252,6 @@ fn search<Node: NodeType>(
     let raw_eval = eval(pos.board());
     let corr = thread.history.corr(pos.board());
     let static_eval = adjust_eval(raw_eval, corr);
-
-    if depth <= 0 {
-        return static_eval;
-    }
 
     let improving = {
         let prev2 = ply.wrapping_sub(2);
@@ -523,6 +524,169 @@ fn search<Node: NodeType>(
             .history
             .update_corr(pos.board(), depth, best_score, static_eval);
     }
+
+    best_score
+}
+
+fn qsearch<Node: NodeType>(
+    pos: &mut Position,
+    thread: &mut ThreadData,
+    shared: &SharedData,
+    mut alpha: Score,
+    beta: Score,
+    ply: usize,
+) -> Score {
+    thread.nodes.inc();
+    if thread.stop || shared.time_man.stop_search(thread) {
+        shared.time_man.set_stop(true);
+        thread.stop = true;
+
+        return Score::ZERO;
+    }
+
+    if ply >= MAX_PLY {
+        return adjust_eval(eval(pos.board()), thread.history.corr(pos.board()));
+    }
+
+    debug_assert!(ply > 0 && ply < MAX_PLY);
+    debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
+    debug_assert!(Node::PV || alpha == beta - 1);
+
+    if Node::PV {
+        thread.stack[ply].pv.clear();
+    }
+    thread.stack[ply].mv = None;
+    thread.sel_depth = thread.sel_depth.max(ply);
+
+    // King captured, gg
+    if pos.board().try_king(pos.board().stm()).is_none() {
+        return Score::mated(ply);
+    }
+
+    // 50-move-rule + threefold repetition detection
+    if pos.board().hmc() >= 100 || pos.repetition() {
+        return Score::draw();
+    }
+
+    // Transposition Table Cutoffs
+    let tt_entry = shared.tt.probe(pos.board().hash());
+
+    // Only use noisy TT moves
+    let tt_move = tt_entry
+        .and_then(|e| e.best_move())
+        .filter(|mv| mv.flag().is_noisy());
+
+    if let Some(entry) = tt_entry {
+        let score = entry.score();
+        if entry.flag().bounds_match(score, alpha, beta) {
+            return score;
+        }
+    }
+
+    let raw_eval = eval(pos.board());
+    let corr = thread.history.corr(pos.board());
+    let static_eval = adjust_eval(raw_eval, corr);
+
+    // Stand-pat
+    let mut best_score = static_eval;
+    if best_score >= beta {
+        return best_score;
+    }
+    if best_score > alpha {
+        alpha = best_score;
+    }
+
+    thread.stack[ply].raw_eval = Some(raw_eval);
+    thread.stack[ply].static_eval = Some(static_eval);
+    thread.move_stack.push_ply();
+
+    let mut ducks_by_move: [[u8; Square::COUNT]; Square::COUNT] =
+        [[0; Square::COUNT]; Square::COUNT];
+    let mut duck_counts: [u8; Square::COUNT] = [0; Square::COUNT];
+    let mut duck_refutations = [(None, Bitboard::EMPTY); Square::COUNT];
+    let mut duck_safety = [(None, Bitboard::FULL); Square::COUNT];
+    let mut move_picker = MovePicker::new(tt_move);
+    move_picker.skip_quiets();
+
+    let indices = ContIndices::new(pos);
+    while let Some(mv) = move_picker.next(pos, thread, indices) {
+        let (src, dest, duck) = (mv.src(), mv.dest(), mv.duck());
+        let piece_move = Some((src, mv.flag()));
+
+        // Duck Refutations
+        if duck_refutations[dest].0 == piece_move && duck_refutations[dest].1.has(mv.duck()) {
+            continue;
+        }
+
+        if duck_safety[dest].0 != Some(src) {
+            let mut board = *pos.board();
+            // TODO: Calculate king capture blocks without making the full move.
+            board.make_move(mv);
+            duck_safety[dest] = (Some(src), board.king_capture_blocks(!board.stm()));
+        }
+        let safe = duck_safety[dest].1;
+
+        // Late Duck Pruning (LDP)
+        if safe == Bitboard::FULL && ducks_by_move[src][dest] >= Params::qsldp_threshold() as u8 {
+            continue;
+        }
+
+        // Duck Count Pruning (DCP)
+        if !Node::PV && duck_counts[duck] >= Params::qsdcp_threshold() as u8 {
+            continue;
+        }
+
+        ducks_by_move[src][dest] += 1;
+        duck_counts[duck] += 1;
+
+        pos.make_move(mv);
+
+        // Duck or Die Pruning
+        let score = if !safe.has(mv.duck()) && pos.board().hmc() < 100 && !pos.repetition() {
+            // Clear the previous child's continuation because this move skips recursive search.
+            thread.stack[ply + 1].pv.clear();
+            thread.stack[ply + 1].mv = None;
+            Score::mated(ply + 2)
+        } else {
+            -qsearch::<Node>(pos, thread, shared, -beta, -alpha, ply + 1)
+        };
+
+        pos.unmake_move();
+
+        if thread.stop {
+            thread.move_stack.pop_ply();
+            return Score::ZERO;
+        }
+
+        // Duck Refutations
+        if let Some(reply) = thread.stack[ply + 1].mv {
+            let refuted = !(between(reply.src(), reply.dest()) | reply.dest() | reply.duck());
+
+            if duck_refutations[dest].0 == piece_move {
+                duck_refutations[dest].1 |= refuted;
+            } else {
+                duck_refutations[dest] = (piece_move, refuted);
+            }
+        }
+
+        if score > best_score {
+            best_score = score;
+        }
+
+        if score > alpha {
+            alpha = score;
+            thread.stack[ply].mv = Some(mv);
+            if Node::PV {
+                update_pv(thread, mv, ply);
+            }
+
+            if score >= beta {
+                break;
+            }
+        }
+    }
+
+    thread.move_stack.pop_ply();
 
     best_score
 }
