@@ -1,6 +1,7 @@
 pub mod cont;
 pub mod corr;
 pub mod duck;
+pub mod duck_hash;
 pub mod noisy;
 pub mod quiet;
 
@@ -11,10 +12,12 @@ use crate::search::Params;
 pub use cont::*;
 pub use corr::*;
 pub use duck::*;
+pub use duck_hash::*;
 pub use noisy::*;
 pub use quiet::*;
 
 pub const MAX_HISTORY: i32 = 16384;
+pub const SLIDER_DUCK_HASH_SIZE: usize = 16384;
 pub const PAWN_CORR_SIZE: usize = 4096;
 pub const MINOR_CORR_SIZE: usize = 16384;
 pub const MAJOR_CORR_SIZE: usize = 16384;
@@ -26,6 +29,7 @@ pub struct History {
     duck: DuckHistory,
     cont_odd: ContHistory,
     cont_even: ContHistory,
+    slider_duck: DuckHashHistory<SLIDER_DUCK_HASH_SIZE>,
     pawn_corr: CorrHistory<PAWN_CORR_SIZE>,
     minor_corr: CorrHistory<MINOR_CORR_SIZE>,
     major_corr: CorrHistory<MAJOR_CORR_SIZE>,
@@ -104,6 +108,7 @@ impl History {
     #[inline]
     fn update_duck<const BONUS: bool>(&mut self, board: &Board, depth: i32, mv: Move) {
         self.duck.update::<BONUS>(board, depth, mv);
+        self.slider_duck.update::<BONUS>(board, depth, mv);
     }
 
     #[inline]
@@ -119,6 +124,11 @@ impl History {
     #[inline]
     pub fn duck(&self, board: &Board, mv: Move) -> i32 {
         self.duck.entry(board, mv)
+    }
+
+    #[inline]
+    pub fn slider_duck(&self, board: &Board, mv: Move) -> i32 {
+        self.slider_duck.entry(board, mv)
     }
 
     #[inline]

@@ -100,6 +100,13 @@ params! {
     cont2_malus_scale: i32 => 128;
     cont2_malus_max:   i32 => 2048;
 
+    duck_hash_bonus_base:  i32 => 128;
+    duck_hash_bonus_scale: i32 => 128;
+    duck_hash_bonus_max:   i32 => 2048;
+    duck_hash_malus_base:  i32 => 128;
+    duck_hash_malus_scale: i32 => 128;
+    duck_hash_malus_max:   i32 => 2048;
+
     rfp_depth:     i32 => 8;
     rfp_base:      i32 => 0;
     rfp_scale:     i32 => 50;
@@ -161,6 +168,18 @@ impl Params {
     #[inline]
     pub fn duck_malus(depth: i32) -> i32 {
         -(Self::duck_malus_base() + Self::duck_malus_scale() * depth).min(Self::duck_malus_max())
+    }
+
+    #[inline]
+    pub fn duck_hash_bonus(depth: i32) -> i32 {
+        (Self::duck_hash_bonus_base() + Self::duck_hash_bonus_scale() * depth)
+            .min(Self::duck_hash_bonus_max())
+    }
+
+    #[inline]
+    pub fn duck_hash_malus(depth: i32) -> i32 {
+        -(Self::duck_hash_malus_base() + Self::duck_hash_malus_scale() * depth)
+            .min(Self::duck_hash_malus_max())
     }
 
     #[inline]

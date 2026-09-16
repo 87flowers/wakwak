@@ -20,6 +20,7 @@ pub struct Board {
     pub(super) major_hash: u64,
     pub(super) white_hash: u64,
     pub(super) black_hash: u64,
+    pub(super) slider_hash: [u64; Color::COUNT],
     pub(super) stm: Color,
     pub(super) fmc: u16,
     pub(super) hmc: u8,
@@ -136,6 +137,11 @@ impl Board {
     }
 
     #[inline]
+    pub fn slider_hash(&self, color: Color) -> u64 {
+        self.slider_hash[color]
+    }
+
+    #[inline]
     pub fn duckless_hash(&self) -> u64 {
         self.hash ^ self.duck.map_or(0, |sq| ZOBRIST.duck(sq))
     }
@@ -249,12 +255,22 @@ impl Board {
         match piece {
             Piece::Pawn => self.pawn_hash ^= value,
             Piece::Knight => self.minor_hash ^= value,
-            Piece::Bishop => self.minor_hash ^= value,
-            Piece::Rook => self.major_hash ^= value,
-            Piece::Queen => self.major_hash ^= value,
+            Piece::Bishop => {
+                self.minor_hash ^= value;
+                self.slider_hash[color] ^= value;
+            }
+            Piece::Rook => {
+                self.major_hash ^= value;
+                self.slider_hash[color] ^= value;
+            }
+            Piece::Queen => {
+                self.major_hash ^= value;
+                self.slider_hash[color] ^= value;
+            }
             Piece::King => {
                 self.minor_hash ^= value;
                 self.major_hash ^= value;
+                self.slider_hash[color] ^= value;
             }
         }
 

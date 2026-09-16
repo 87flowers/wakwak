@@ -33,6 +33,7 @@ impl Board {
             major_hash: 0,
             white_hash: 0,
             black_hash: 0,
+            slider_hash: [0; Color::COUNT],
             stm: Color::White,
             fmc: 0,
             hmc: 0,
