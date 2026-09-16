@@ -4,7 +4,7 @@ use crate::position::Position;
 #[cfg(feature = "tune")]
 use crate::search::Params;
 use crate::search::{DEFAULT_OVERHEAD, SearchInfo, Searcher, tt};
-use crate::uci::{SearchLimit, UciCommand, UciParseError};
+use crate::uci::{GENFENS_USAGE, SearchLimit, UciCommand, UciParseError};
 use crate::util::Abort;
 use std::io;
 use std::time::{Duration, Instant};
@@ -80,6 +80,22 @@ impl Engine {
             UciCommand::IsReady => Self::isready(),
             UciCommand::Display => self.display(),
             UciCommand::Bench { depth } => self.bench(depth),
+            UciCommand::GenFens {
+                count,
+                seed,
+                dfrc,
+                plies,
+            } => {
+                if self.searcher.is_searching() {
+                    self.searcher.stop();
+                    self.searcher.wait();
+                }
+                self.gen_fens(count, seed, dfrc, plies);
+            }
+            UciCommand::GenFensHelp => {
+                println!("info string Usage: {GENFENS_USAGE}");
+                println!("info string Defaults: dfrc true, moves 8 (plus 0 or 1 random ply)");
+            }
             UciCommand::Search(limits) => self.search(limits),
             UciCommand::Perft { depth, bulk } => self.perft(depth, bulk),
             UciCommand::SplitPerft { depth, bulk } => self.split_perft(depth, bulk),
