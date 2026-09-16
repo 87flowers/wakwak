@@ -15,9 +15,7 @@ pub struct Board {
     pub(super) en_passant: Option<EnPassant>,
     pub(super) duck: Option<Square>,
     pub(super) hash: u64,
-    pub(super) pawn_hash: u64,
-    pub(super) minor_hash: u64,
-    pub(super) major_hash: u64,
+    pub(super) piece_hashes: [u64; 6],
     pub(super) stm: Color,
     pub(super) fmc: u16,
     pub(super) hmc: u8,
@@ -110,17 +108,21 @@ impl Board {
 
     #[inline]
     pub fn pawn_hash(&self) -> u64 {
-        self.pawn_hash
+        self.piece_hashes[Piece::Pawn]
     }
 
     #[inline]
     pub fn minor_hash(&self) -> u64 {
-        self.minor_hash
+        self.piece_hashes[Piece::King]
+            ^ self.piece_hashes[Piece::Knight]
+            ^ self.piece_hashes[Piece::Bishop]
     }
 
     #[inline]
     pub fn major_hash(&self) -> u64 {
-        self.major_hash
+        self.piece_hashes[Piece::King]
+            ^ self.piece_hashes[Piece::Rook]
+            ^ self.piece_hashes[Piece::Queen]
     }
 
     #[inline]
@@ -233,18 +235,7 @@ impl Board {
 
         let value = ZOBRIST.piece(sq, piece, color);
         self.hash ^= value;
-
-        match piece {
-            Piece::Pawn => self.pawn_hash ^= value,
-            Piece::Knight => self.minor_hash ^= value,
-            Piece::Bishop => self.minor_hash ^= value,
-            Piece::Rook => self.major_hash ^= value,
-            Piece::Queen => self.major_hash ^= value,
-            Piece::King => {
-                self.minor_hash ^= value;
-                self.major_hash ^= value;
-            }
-        }
+        self.piece_hashes[piece] ^= value;
     }
 
     #[inline]
