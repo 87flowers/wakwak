@@ -11,6 +11,10 @@ const EG_PIECE_SCORES: [[i32; Square::COUNT]; Piece::COUNT] =
     combine_scores(EG_PIECE_VALUES, EG_PSQT);
 const PHASE_WEIGHTS: [i32; Piece::COUNT] = [0, 1, 1, 2, 4, 0];
 const MAX_PHASE: i32 = 24;
+const TEMPO_BONUS_MG: i32 = 30;
+const TEMPO_BONUS_EG: i32 = 25;
+const BISHOP_PAIR_BONUS_MG: i32 = 20;
+const BISHOP_PAIR_BONUS_EG: i32 = 50;
 
 #[inline]
 const fn combine_scores(
@@ -52,5 +56,14 @@ fn side_score(board: &Board, color: Color) -> (Score, Score, i32) {
             phase += PHASE_WEIGHTS[piece];
         }
     }
+
+    let bishop_count = board.pieces(Piece::Bishop).popcnt() as i32;
+    mg += bishop_count * BISHOP_PAIR_BONUS_MG;
+    eg += bishop_count * BISHOP_PAIR_BONUS_EG;
+
+    let stm = (board.stm() == color) as i32;
+    mg += stm * TEMPO_BONUS_MG;
+    eg += stm * TEMPO_BONUS_EG;
+
     (mg, eg, phase)
 }
