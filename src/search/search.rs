@@ -241,12 +241,9 @@ fn search<Node: NodeType>(
         }
     }
 
-    // TODO: uncomment this when it is used
-    // let in_check = pos.board().in_check();
     let raw_eval = eval(pos.board());
     let corr = thread.history.corr(pos.board());
     let static_eval = adjust_eval(raw_eval, corr);
-    let raw_eval = eval(pos.board());
 
     if depth <= 0 {
         return static_eval;
