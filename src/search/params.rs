@@ -106,6 +106,8 @@ params! {
     rfp_imp_base:  i32 => -50;
     rfp_imp_scale: i32 => 50;
 
+    nmr_margin: i32 => 20;
+
     mvvlva_pawn:   i32 => 100;
     mvvlva_knight: i32 => 320;
     mvvlva_bishop: i32 => 330;

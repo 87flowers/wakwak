@@ -32,6 +32,7 @@ pub fn iterative_deepening(
 
     'id: loop {
         thread.sel_depth = 0;
+        thread.nmr_ply = None;
         let new_score = Some(search::<Root>(
             &mut pos,
             thread,
@@ -276,6 +277,44 @@ fn search<Node: NodeType>(
         && static_eval - Params::rfp_margin(depth, improving) >= beta
     {
         return static_eval;
+    }
+
+    /*
+    Null Move Reductions: There is almost always a better alternative to
+    doing nothing; if fail high despite giving our opponent a move, our best
+    legal move will likely also fail high. However, due to the prevalance of
+    duckzwang, we trial a large reduction instead of doing a full prune.
+    A prune is done only after a second null move passes in an NMR subtree.
+    The duck is taken off the board for the null move to allow opponent to
+    put it wherever they want.
+    */
+    if !Node::PV
+        && depth >= 4
+        && thread.nmr_ply != Some(ply)
+        && thread.stack[ply - 1].mv.is_some()
+        && static_eval >= beta + Params::nmr_margin()
+    {
+        let r = 3;
+        pos.make_null_move();
+        let score = -search::<NonPV>(pos, thread, shared, -beta, -beta + 1, depth - r, ply + 1);
+        pos.unmake_move();
+
+        if thread.stop {
+            return Score::ZERO;
+        }
+
+        if score >= beta {
+            if thread.nmr_ply.is_some() {
+                return score;
+            } else {
+                thread.nmr_ply = Some(ply);
+                let score = search::<NonPV>(pos, thread, shared, alpha, beta, depth / 2, ply);
+                thread.nmr_ply = None;
+                if score >= beta {
+                    return score;
+                }
+            }
+        }
     }
 
     thread.move_stack.push_ply();
