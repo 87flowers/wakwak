@@ -339,6 +339,7 @@ fn search<Node: NodeType>(
         let score = if !safe.has(mv.duck()) && pos.board().hmc() < 100 && !pos.repetition() {
             // Clear the previous child's continuation because this move skips recursive search.
             thread.stack[ply + 1].pv.clear();
+            thread.stack[ply + 1].mv = None;
             Score::mated(ply + 2)
         } else {
             let new_depth = depth - 1;
@@ -380,6 +381,7 @@ fn search<Node: NodeType>(
         // Duck Refutations
         if let Some(reply) = thread.stack[ply + 1].mv {
             let refuted = !(between(reply.src(), reply.dest()) | reply.dest() | reply.duck());
+
             if duck_refutations[dest].0 == piece_move {
                 duck_refutations[dest].1 |= refuted;
             } else {
