@@ -167,7 +167,7 @@ fn search<Node: NodeType>(
     shared: &SharedData,
     mut alpha: Score,
     beta: Score,
-    depth: i32,
+    mut depth: i32,
     ply: usize,
 ) -> Score {
     if !Node::ROOT && (thread.stop || shared.time_man.stop_search(thread)) {
@@ -315,6 +315,11 @@ fn search<Node: NodeType>(
                 }
             }
         }
+    }
+
+    // Internal Iterative Reductions
+    if !Node::ROOT && Node::PV && depth >= 5 && tt_move.is_none() {
+        depth -= 1;
     }
 
     thread.move_stack.push_ply();
