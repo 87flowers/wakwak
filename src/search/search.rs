@@ -51,16 +51,6 @@ pub fn iterative_deepening(
         score = new_score;
         pv = thread.stack[0].pv.clone();
 
-        if thread.id == 0 {
-            if shared.time_man.stop_id(depth, thread.nodes.global()) {
-                shared.time_man.set_stop(true);
-                thread.stop = true;
-                break 'id;
-            }
-
-            shared.time_man.deepen(depth);
-        }
-
         depth += 1;
         completed_depth += 1;
 
@@ -73,6 +63,19 @@ pub fn iterative_deepening(
                 score.unwrap(),
                 &pv,
             );
+        }
+
+        if thread.id == 0 {
+            if shared
+                .time_man
+                .stop_id(completed_depth, thread.nodes.global())
+            {
+                shared.time_man.set_stop(true);
+                thread.stop = true;
+                break 'id;
+            }
+
+            shared.time_man.deepen(depth);
         }
     }
 
