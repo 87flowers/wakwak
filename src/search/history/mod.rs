@@ -18,15 +18,19 @@ pub const MAX_HISTORY: i32 = 16384;
 pub const PAWN_CORR_SIZE: usize = 4096;
 pub const MINOR_CORR_SIZE: usize = 16384;
 pub const MAJOR_CORR_SIZE: usize = 16384;
+pub const NONPAWN_CORR_SIZE: usize = 16384;
 
 pub struct History {
     quiet: QuietHistory,
     noisy: NoisyHistory,
     duck: DuckHistory,
     cont_odd: ContHistory,
+    cont_even: ContHistory,
     pawn_corr: CorrHistory<PAWN_CORR_SIZE>,
     minor_corr: CorrHistory<MINOR_CORR_SIZE>,
     major_corr: CorrHistory<MAJOR_CORR_SIZE>,
+    white_corr: CorrHistory<NONPAWN_CORR_SIZE>,
+    black_corr: CorrHistory<NONPAWN_CORR_SIZE>,
 }
 
 impl History {
@@ -73,6 +77,8 @@ impl History {
         self.pawn_corr.update(stm, board.pawn_hash(), depth, diff);
         self.minor_corr.update(stm, board.minor_hash(), depth, diff);
         self.major_corr.update(stm, board.major_hash(), depth, diff);
+        self.white_corr.update(stm, board.white_hash(), depth, diff);
+        self.black_corr.update(stm, board.black_hash(), depth, diff);
     }
 
     #[inline]
@@ -86,6 +92,8 @@ impl History {
         self.quiet.update::<BONUS>(board, depth, mv);
         self.cont_odd
             .update::<1, BONUS>(board, depth, mv, indices.cont1);
+        self.cont_even
+            .update::<2, BONUS>(board, depth, mv, indices.cont2);
     }
 
     #[inline]
@@ -115,9 +123,15 @@ impl History {
 
     #[inline]
     pub fn cont(&self, board: &Board, indices: ContIndices, mv: Move) -> i32 {
-        self.cont_odd
+        let mut value = self
+            .cont_odd
             .entry(board, mv, indices.cont1)
-            .unwrap_or_default()
+            .unwrap_or_default();
+        value += self
+            .cont_even
+            .entry(board, mv, indices.cont2)
+            .unwrap_or_default();
+        value
     }
 
     #[inline]
@@ -128,6 +142,8 @@ impl History {
         corr += Params::pawn_corr() * self.pawn_corr.entry(stm, board.pawn_hash());
         corr += Params::minor_corr() * self.minor_corr.entry(stm, board.minor_hash());
         corr += Params::major_corr() * self.major_corr.entry(stm, board.major_hash());
+        corr += Params::nonpawn_corr() * self.white_corr.entry(stm, board.white_hash());
+        corr += Params::nonpawn_corr() * self.black_corr.entry(stm, board.black_hash());
         corr / MAX_CORR
     }
 }

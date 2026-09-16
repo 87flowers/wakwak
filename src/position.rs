@@ -42,6 +42,13 @@ impl Position {
     }
 
     #[inline]
+    pub fn make_null_move(&mut self) {
+        self.previous_boards.push(self.current);
+        self.previous_moves.push(None);
+        self.current.make_null_move(None);
+    }
+
+    #[inline]
     pub fn board(&self) -> &Board {
         &self.current
     }

@@ -18,6 +18,8 @@ pub struct Board {
     pub(super) pawn_hash: u64,
     pub(super) minor_hash: u64,
     pub(super) major_hash: u64,
+    pub(super) white_hash: u64,
+    pub(super) black_hash: u64,
     pub(super) stm: Color,
     pub(super) fmc: u16,
     pub(super) hmc: u8,
@@ -121,6 +123,16 @@ impl Board {
     #[inline]
     pub fn major_hash(&self) -> u64 {
         self.major_hash
+    }
+
+    #[inline]
+    pub fn white_hash(&self) -> u64 {
+        self.white_hash
+    }
+
+    #[inline]
+    pub fn black_hash(&self) -> u64 {
+        self.black_hash
     }
 
     #[inline]
@@ -243,6 +255,13 @@ impl Board {
             Piece::King => {
                 self.minor_hash ^= value;
                 self.major_hash ^= value;
+            }
+        }
+
+        if piece != Piece::Pawn {
+            match color {
+                Color::White => self.white_hash ^= value,
+                Color::Black => self.black_hash ^= value,
             }
         }
     }
