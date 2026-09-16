@@ -125,6 +125,10 @@ params! {
     noisy_ldp_imp_threshold_scale: i32 => 4;
     noisy_ldp_threshold_base:      i32 => 4;
     noisy_ldp_threshold_scale:     i32 => 4;
+
+    dcp_depth:           i32 => 8;
+    dcp_threshold_base:  i32 => 4;
+    dcp_threshold_scale: i32 => 2;
 }
 
 impl Params {
@@ -243,6 +247,11 @@ impl Params {
         };
 
         base + scale * depth
+    }
+
+    #[inline]
+    pub const fn dcp_threshold(depth: i32) -> i32 {
+        Self::dcp_threshold_base() + Self::dcp_threshold_scale() * depth
     }
 
     #[inline]

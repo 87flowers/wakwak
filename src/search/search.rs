@@ -328,14 +328,16 @@ fn search<Node: NodeType>(
     let mut failed_quiets = Vec::new();
     let mut failed_noisies = Vec::new();
     let mut move_picker = MovePicker::new(tt_move);
-    let mut duck_counts: [[u8; Square::COUNT]; Square::COUNT] = [[0; Square::COUNT]; Square::COUNT];
+    let mut ducks_by_move: [[u8; Square::COUNT]; Square::COUNT] =
+        [[0; Square::COUNT]; Square::COUNT];
+    let mut duck_counts: [u8; Square::COUNT] = [0; Square::COUNT];
     let mut duck_refutations = [(None, Bitboard::EMPTY); Square::COUNT];
     let mut duck_safety = [(None, Bitboard::FULL); Square::COUNT];
     let mut flag = TTFlag::Upper;
 
     let indices = ContIndices::new(pos);
     while let Some(mv) = move_picker.next(pos, thread, indices) {
-        let (src, dest) = (mv.src(), mv.dest());
+        let (src, dest, duck) = (mv.src(), mv.dest(), mv.duck());
         let piece_move = Some((src, mv.flag()));
         let is_quiet = mv.flag().is_quiet();
         legal_moves += 1;
@@ -363,12 +365,26 @@ fn search<Node: NodeType>(
         */
         if safe == Bitboard::FULL
             && depth <= Params::ldp_depth(is_quiet)
-            && duck_counts[src][dest] >= Params::ldp_threshold(depth, is_quiet, improving) as u8
+            && ducks_by_move[src][dest] >= Params::ldp_threshold(depth, is_quiet, improving) as u8
         {
             continue;
         }
 
-        duck_counts[src][dest] += 1;
+        /*
+        Duck Count Pruning (DCP): After a certain number of moves containing a
+        given duck move, we can be reasonably confident that any move containing
+        that duck won't be much better, so we can skip the rest of them
+         */
+        if !Node::PV
+            && is_quiet
+            && depth <= Params::dcp_depth()
+            && duck_counts[duck] >= Params::dcp_threshold(depth) as u8
+        {
+            continue;
+        }
+
+        ducks_by_move[src][dest] += 1;
+        duck_counts[duck] += 1;
         pos.make_move(mv);
 
         /*
