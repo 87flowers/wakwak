@@ -191,7 +191,7 @@ fn search<Node: NodeType>(
     thread.sel_depth = thread.sel_depth.max(ply);
 
     if depth <= 0 {
-        return qsearch(pos, thread, shared, alpha, beta, ply);
+        return qsearch::<Node>(pos, thread, shared, alpha, beta, ply);
     }
 
     if !Node::ROOT {
@@ -528,7 +528,7 @@ fn search<Node: NodeType>(
     best_score
 }
 
-fn qsearch(
+fn qsearch<Node: NodeType>(
     pos: &mut Position,
     thread: &mut ThreadData,
     shared: &SharedData,
@@ -547,13 +547,11 @@ fn qsearch(
         return adjust_eval(eval(pos.board()), thread.history.corr(pos.board()));
     }
 
-    let pv_node = beta - alpha > 1;
-
     debug_assert!(ply > 0 && ply < MAX_PLY);
     debug_assert!(-Score::INFINITE <= alpha && alpha < beta && beta <= Score::INFINITE);
-    debug_assert!(pv_node || alpha == beta - 1);
+    debug_assert!(Node::PV || alpha == beta - 1);
 
-    if pv_node {
+    if Node::PV {
         thread.stack[ply].pv.clear();
     }
     thread.stack[ply].mv = None;
@@ -634,7 +632,7 @@ fn qsearch(
         }
 
         // Duck Count Pruning (DCP)
-        if !pv_node && duck_counts[duck] >= Params::qsdcp_threshold() as u8 {
+        if !Node::PV && duck_counts[duck] >= Params::qsdcp_threshold() as u8 {
             continue;
         }
 
@@ -650,7 +648,7 @@ fn qsearch(
             thread.stack[ply + 1].mv = None;
             Score::mated(ply + 2)
         } else {
-            -qsearch(pos, thread, shared, -beta, -alpha, ply + 1)
+            -qsearch::<Node>(pos, thread, shared, -beta, -alpha, ply + 1)
         };
 
         pos.unmake_move();
@@ -678,7 +676,7 @@ fn qsearch(
         if score > alpha {
             alpha = score;
             thread.stack[ply].mv = Some(mv);
-            if pv_node {
+            if Node::PV {
                 update_pv(thread, mv, ply);
             }
 
