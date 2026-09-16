@@ -279,6 +279,15 @@ fn search<Node: NodeType>(
         return static_eval;
     }
 
+    /*
+    Null Move Reductions: There is almost always a better alternative to
+    doing nothing; if fail high despite giving our opponent a move, our best
+    legal move will likely also fail high. However, due to the prevalance of
+    duckzwang, we trial a large reduction instead of doing a full prune.
+    A prune is done only after a second null move passes in an NMR subtree.
+    The duck is taken off the board for the null move to allow opponent to
+    put it wherever they want.
+    */
     if !Node::PV
         && depth >= 4
         && thread.nmr_ply != Some(ply)
