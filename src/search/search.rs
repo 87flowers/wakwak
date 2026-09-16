@@ -536,6 +536,7 @@ fn qsearch<Node: NodeType>(
     beta: Score,
     ply: usize,
 ) -> Score {
+    thread.nodes.inc();
     if thread.stop || shared.time_man.stop_search(thread) {
         shared.time_man.set_stop(true);
         thread.stop = true;
@@ -556,7 +557,6 @@ fn qsearch<Node: NodeType>(
     }
     thread.stack[ply].mv = None;
     thread.sel_depth = thread.sel_depth.max(ply);
-    thread.nodes.inc();
 
     // King captured, gg
     if pos.board().try_king(pos.board().stm()).is_none() {
