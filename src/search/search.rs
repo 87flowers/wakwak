@@ -226,6 +226,9 @@ fn search<Node: NodeType>(
     {
         let score = entry.score();
         if entry.depth() >= depth && entry.flag().bounds_match(score, alpha, beta) {
+            if tt_move.is_some() {
+                thread.stack[ply].mv = tt_move;
+            }
             return score;
         }
     }
@@ -609,6 +612,9 @@ fn qsearch<Node: NodeType>(
     if let Some(entry) = tt_entry {
         let score = entry.score();
         if entry.flag().bounds_match(score, alpha, beta) {
+            if tt_move.is_some() {
+                thread.stack[ply].mv = tt_move;
+            }
             return score;
         }
     }
