@@ -324,7 +324,7 @@ fn search<Node: NodeType>(
         let iid_depth = (Params::iid_depth_scale() * depth - Params::iid_depth_reduction()) / 1024;
 
         thread.iid_iteration += 1;
-        _ = search::<NonPV>(pos, thread, shared, alpha, beta, iid_depth, ply);
+        _ = search::<PV>(pos, thread, shared, alpha, beta, iid_depth, ply);
         thread.iid_iteration -= 1;
 
         let entry = shared.tt.probe(pos.board().hash());
