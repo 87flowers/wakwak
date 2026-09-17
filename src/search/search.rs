@@ -319,6 +319,24 @@ fn search<Node: NodeType>(
         }
     }
 
+    // Internal Iterative Deepening
+    if !Node::ROOT && Node::PV && depth >= 5 && tt_move.is_none() && thread.id == 0 {
+        let iid_depth = (Params::iid_depth_scale() * depth - Params::iid_depth_reduction()) / 1024;
+
+        thread.iid_iteration += 1;
+        _ = search::<PV>(pos, thread, shared, alpha, beta, iid_depth, ply);
+        thread.iid_iteration -= 1;
+
+        let entry = shared.tt.probe(pos.board().hash());
+        if thread.iid_iteration > 0
+            && let Some(entry) = entry
+            && entry.depth() >= depth
+        {
+            return entry.score();
+        }
+        tt_move = entry.and_then(|e| e.best_move());
+    }
+
     thread.move_stack.push_ply();
 
     let mut best_move = None;
