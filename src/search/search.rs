@@ -282,6 +282,18 @@ fn search<Node: NodeType>(
     }
 
     /*
+    Razoring: If our evaluation of the position is so far below alpha
+    that it seems hopeless, we can be reasonably confident that a further
+    search won't make a difference and will cuase a fail low.
+    */
+    if static_eval + Params::razor_margin(depth) <= alpha {
+        let score = qsearch::<NonPV>(pos, thread, shared, alpha, alpha + 1, ply);
+        if score <= alpha {
+            return score;
+        }
+    }
+
+    /*
     Null Move Reductions: There is almost always a better alternative to
     doing nothing; if fail high despite giving our opponent a move, our best
     legal move will likely also fail high. However, due to the prevalance of
