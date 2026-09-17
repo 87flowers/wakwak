@@ -607,6 +607,8 @@ fn qsearch<Node: NodeType>(
     let mut duck_safety = [(None, Bitboard::FULL); Square::COUNT];
     let mut move_picker = MovePicker::new(tt_move);
     move_picker.skip_quiets();
+    let mut best_move = None;
+    let mut flag = TTFlag::Upper;
 
     let indices = ContIndices::new(pos);
     while let Some(mv) = move_picker.next(pos, thread, indices) {
@@ -669,18 +671,25 @@ fn qsearch<Node: NodeType>(
 
         if score > alpha {
             alpha = score;
+            best_move = Some(mv);
+            flag = TTFlag::Exact;
             thread.stack[ply].mv = Some(mv);
             if Node::PV {
                 update_pv(thread, mv, ply);
             }
 
             if score >= beta {
+                flag = TTFlag::Lower;
                 break;
             }
         }
     }
 
     thread.move_stack.pop_ply();
+
+    shared
+        .tt
+        .insert(pos.board().hash(), best_move, best_score, 0, flag);
 
     best_score
 }
