@@ -106,7 +106,13 @@ params! {
     rfp_imp_base:  i32 => -50;
     rfp_imp_scale: i32 => 50;
 
+    razor_base:  i32 => 320;
+    razor_scale: i32 => 250;
+
     nmr_margin: i32 => 20;
+
+    iid_depth_scale:     i32 => 768;
+    iid_depth_reduction: i32 => 1536;
 
     mvvlva_pawn:   i32 => 100;
     mvvlva_knight: i32 => 320;
@@ -219,6 +225,11 @@ impl Params {
         };
 
         base + scale * depth
+    }
+
+    #[inline]
+    pub const fn razor_margin(depth: i32) -> i32 {
+        Self::razor_base() + Self::razor_scale() * depth
     }
 
     #[inline]
