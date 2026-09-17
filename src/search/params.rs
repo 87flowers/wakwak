@@ -108,6 +108,9 @@ params! {
 
     nmr_margin: i32 => 20;
 
+    iid_depth_scale:     i32 => 768;
+    iid_depth_reduction: i32 => 1536;
+
     mvvlva_pawn:   i32 => 100;
     mvvlva_knight: i32 => 320;
     mvvlva_bishop: i32 => 330;
