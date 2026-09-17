@@ -16,6 +16,7 @@ pub struct SearchStack {
     raw_eval: Option<Score>,
     static_eval: Option<Score>,
     mv: Option<Move>,
+    best_move: Option<Move>,
 }
 
 pub fn iterative_deepening(
@@ -187,6 +188,7 @@ fn search<Node: NodeType>(
         thread.stack[ply].pv.clear();
     }
     thread.stack[ply].mv = None;
+    thread.stack[ply].best_move = None;
 
     thread.sel_depth = thread.sel_depth.max(ply);
 
@@ -305,6 +307,7 @@ fn search<Node: NodeType>(
     The duck is taken off the board for the null move to allow opponent to
     put it wherever they want.
     */
+    let mut duck_threat = None;
     if !Node::PV
         && depth >= 4
         && thread.nmr_ply != Some(ply)
@@ -332,6 +335,8 @@ fn search<Node: NodeType>(
                 }
             }
         }
+
+        duck_threat = thread.stack[ply + 1].best_move.map(|mv| mv.duck());
     }
 
     // Internal Iterative Deepening
@@ -361,7 +366,7 @@ fn search<Node: NodeType>(
     let mut searched_moves = 0;
     let mut failed_quiets = Vec::new();
     let mut failed_noisies = Vec::new();
-    let mut move_picker = MovePicker::new(tt_move);
+    let mut move_picker = MovePicker::new(tt_move, duck_threat);
     let mut ducks_by_move: [[u8; Square::COUNT]; Square::COUNT] =
         [[0; Square::COUNT]; Square::COUNT];
     let mut duck_counts: [u8; Square::COUNT] = [0; Square::COUNT];
@@ -488,6 +493,7 @@ fn search<Node: NodeType>(
         if score > alpha {
             alpha = score;
             best_move = Some(mv);
+            thread.stack[ply].best_move = Some(mv);
             best_move_depth = move_depth;
             thread.stack[ply].mv = best_move;
             flag = TTFlag::Exact;
@@ -589,6 +595,7 @@ fn qsearch<Node: NodeType>(
         thread.stack[ply].pv.clear();
     }
     thread.stack[ply].mv = None;
+    thread.stack[ply].best_move = None;
     thread.sel_depth = thread.sel_depth.max(ply);
 
     // King captured, gg
@@ -641,7 +648,7 @@ fn qsearch<Node: NodeType>(
     let mut duck_counts: [u8; Square::COUNT] = [0; Square::COUNT];
     let mut duck_refutations = [Bitboard::EMPTY; Square::COUNT];
     let mut duck_safety = [(None, Bitboard::FULL); Square::COUNT];
-    let mut move_picker = MovePicker::new(tt_move);
+    let mut move_picker = MovePicker::new(tt_move, None);
     move_picker.skip_quiets();
     let mut best_move = None;
     let mut flag = TTFlag::Upper;
@@ -708,6 +715,7 @@ fn qsearch<Node: NodeType>(
         if score > alpha {
             alpha = score;
             best_move = Some(mv);
+            thread.stack[ply].best_move = Some(mv);
             flag = TTFlag::Exact;
             thread.stack[ply].mv = Some(mv);
             if Node::PV {

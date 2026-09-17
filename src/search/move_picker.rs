@@ -1,5 +1,5 @@
 use crate::board::{Board, MoveFilter, Noisy, Quiet};
-use crate::common::{Move, MoveFlag, Piece};
+use crate::common::{Move, MoveFlag, Piece, Square};
 use crate::position::Position;
 use crate::search::cont::ContIndices;
 use crate::search::{MAX_PLY, Params, ThreadData};
@@ -111,16 +111,18 @@ pub enum Stage {
 pub struct MovePicker {
     stage: Stage,
     tt_move: Option<Move>,
+    duck_threat: Option<Square>,
     skip_quiets: bool,
     cursor: usize,
 }
 
 impl MovePicker {
     #[inline]
-    pub fn new(tt_move: Option<Move>) -> Self {
+    pub fn new(tt_move: Option<Move>, duck_threat: Option<Square>) -> Self {
         Self {
             stage: Stage::TTMove,
             tt_move,
+            duck_threat,
             skip_quiets: false,
             cursor: 0,
         }
@@ -216,7 +218,8 @@ impl MovePicker {
 
             scored.1 = mvv(board, mv) * 8
                 + thread.history.noisy(board, mv) / 8
-                + thread.history.duck(board, mv) / 8;
+                + thread.history.duck(board, mv) / 8
+                + (Some(mv.duck()) == self.duck_threat) as i32 * 300;
         }
 
         moves[start..].sort_unstable_by_key(|m| Reverse(m.1));
@@ -240,7 +243,8 @@ impl MovePicker {
 
             scored.1 = thread.history.quiet(board, mv)
                 + thread.history.duck(board, mv)
-                + thread.history.cont(board, indices, mv);
+                + thread.history.cont(board, indices, mv)
+                + (Some(mv.duck()) == self.duck_threat) as i32 * 300;
         }
 
         moves[start..].sort_unstable_by_key(|m| Reverse(m.1));
