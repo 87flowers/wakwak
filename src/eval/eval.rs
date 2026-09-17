@@ -13,6 +13,8 @@ const PHASE_WEIGHTS: [i32; Piece::COUNT] = [0, 1, 1, 2, 4, 0];
 const MAX_PHASE: i32 = 24;
 const TEMPO_BONUS_MG: i32 = 30;
 const TEMPO_BONUS_EG: i32 = 25;
+const PAWN_DEFENCE_BONUS_MG: i32 = 8;
+const PAWN_DEFENCE_BONUS_EG: i32 = 6;
 const KNIGHT_OUTPOST_BONUS_MG: i32 = 12;
 const KNIGHT_OUTPOST_BONUS_EG: i32 = 8;
 
@@ -60,6 +62,13 @@ fn side_score(board: &Board, color: Color) -> (Score, Score, i32) {
     let outposts = knight_outposts(board, color);
     mg += outposts * KNIGHT_OUTPOST_BONUS_MG;
     eg += outposts * KNIGHT_OUTPOST_BONUS_EG;
+
+    let pawns = board.colored_pieces(color, Piece::Pawn);
+    let pawn_attacks =
+        pawns.shift::<NorthEast>(color.signum()) | pawns.shift::<NorthWest>(color.signum());
+    let defended_pieces = (pawn_attacks & board.colors(color)).popcnt() as i32;
+    mg += defended_pieces * PAWN_DEFENCE_BONUS_MG;
+    eg += defended_pieces * PAWN_DEFENCE_BONUS_EG;
 
     let stm = (board.stm() == color) as i32;
     mg += stm * TEMPO_BONUS_MG;
